@@ -1541,11 +1541,19 @@ async function makeRegistrationCode(payload) {
   return 'SP1.' + base64url;
 }
 
+const CONSENT_VERSION = '2026-10'; // Stand der Datenschutzerklärung, der zugestimmt wurde
+
 // Auf GitHub Pages (name.github.io/repo/) lässt sich das Repository aus der Adresse ablesen
 function repoFromLocation() {
   const owner = /^([^.]+)\.github\.io$/i.exec(location.hostname)?.[1];
   const repo = location.pathname.split('/').filter(Boolean)[0];
   return owner && repo ? `${owner}/${repo}` : null;
+}
+
+function issueUrl(title, code) {
+  const repo = repoFromLocation();
+  const body = 'Bitte nichts ändern – der Code ist verschlüsselt und nur für die Automatik lesbar.\n\n' + code;
+  return repo ? `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}` : null;
 }
 
 function showRegister() {
@@ -1579,20 +1587,26 @@ $('#register-form').addEventListener('submit', async (e) => {
     return;
   }
   try {
+    if (!$('#reg-consent').checked) {
+      err.textContent = 'Bitte bestätige Alter und Datenschutzerklärung.';
+      err.hidden = false;
+      return;
+    }
     const code = await makeRegistrationCode({
+      action: 'register',
       school: v('#reg-school').trim(),
       user: v('#reg-user').trim(),
       password: v('#reg-password'),
       appPassword: v('#reg-app'),
+      consent: { version: CONSENT_VERSION, at: new Date().toISOString() },
       created: new Date().toISOString(),
     });
     store('lastUser', v('#reg-user').trim());
     $('#register-form').reset();
     $('#reg-code').value = code;
-    const repo = repoFromLocation();
-    const body = 'Bitte nichts ändern – der Code ist verschlüsselt und nur für die automatische Anmeldung lesbar.\n\n' + code;
-    $('#reg-issue').hidden = !repo;
-    if (repo) $('#reg-issue').href = `https://github.com/${repo}/issues/new?title=${encodeURIComponent('Anmeldung')}&body=${encodeURIComponent(body)}`;
+    const url = issueUrl('Anmeldung', code);
+    $('#reg-issue').hidden = !url;
+    if (url) $('#reg-issue').href = url;
     $('#register-form').hidden = true;
     $('#register-done').hidden = false;
   } catch {
@@ -1612,6 +1626,45 @@ $('#reg-copy').addEventListener('click', async () => {
   setTimeout(() => ($('#reg-copy').textContent = 'Code kopieren'), 2500);
 });
 
+// ---------- Zugang löschen (GitHub-Version) ----------
+// Erzeugt einen verschlüsselten Löschauftrag. Die Automatik prüft das App-Passwort und entfernt den Zugang.
+
+$$('.delete-account').forEach((b) => b.addEventListener('click', () => {
+  closeSheet();
+  $('#details-body').innerHTML = `
+    <h2>Zugang löschen?</h2>
+    <p class="muted">Danach holt die Automatik keine Daten mehr für dich ab und deine Datei wird entfernt.
+      Das kannst du jederzeit durch neues Anlegen rückgängig machen.</p>
+    <p id="del-error" class="error" hidden></p>
+    <div class="dlg-actions"><button class="btn primary" id="del-make" type="button">Ja, Löschauftrag erstellen</button></div>`;
+  $('#details').showModal();
+  $('#del-make').addEventListener('click', async () => {
+    try {
+      const code = await makeRegistrationCode({
+        action: 'delete',
+        user: state.creds.user,
+        appPassword: state.creds.password,
+        created: new Date().toISOString(),
+      });
+      const url = issueUrl('Löschen', code);
+      $('#details-body').innerHTML = `
+        <h2>Fast gelöscht.</h2>
+        <p class="muted">Reiche den Löschauftrag ein. Nach ein paar Minuten ist dein Zugang entfernt.
+          Ohne GitHub-Konto: Code kopieren und dem Betreiber schicken.</p>
+        <textarea class="code-box" readonly rows="4">${esc(code)}</textarea>
+        <div class="dlg-actions">
+          ${url ? `<a class="btn primary" href="${esc(url)}" target="_blank" rel="noopener">Über GitHub einreichen</a>` : ''}
+          <button class="btn" id="del-copy" type="button">Code kopieren</button>
+        </div>`;
+      $('#del-copy').addEventListener('click', () => navigator.clipboard?.writeText(code).then(() => ($('#del-copy').textContent = 'Kopiert ✓')));
+      store('unlock', null); // auf diesem Gerät nicht mehr automatisch anmelden
+    } catch {
+      $('#del-error').textContent = 'Der Löschauftrag konnte nicht erstellt werden. Bitte noch einmal versuchen.';
+      $('#del-error').hidden = false;
+    }
+  });
+}));
+
 // ---------- Start ----------
 
 (async function start() {
@@ -1621,6 +1674,7 @@ $('#reg-copy').addEventListener('click', async () => {
     return res.ok ? showApp() : showLogin();
   }
   state.static = true;
+  $$('.delete-account').forEach((b) => (b.hidden = false));
   showLogin();
   const saved = store('unlock');
   if (saved?.user) {

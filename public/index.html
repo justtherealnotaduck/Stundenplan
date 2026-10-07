@@ -13,8 +13,8 @@
   <link rel="icon" href="icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icon-180.png">
   <title>Mein Stundenplan</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <script src="config.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -52,7 +52,7 @@
 
       <p id="login-error" class="error" hidden></p>
       <button id="login-btn" class="btn primary" type="submit">Anmelden</button>
-      <p class="hint">Deine Daten werden direkt an WebUntis weitergeleitet und nicht gespeichert.<br>Inoffiziell – nicht mit Untis verbunden.</p>
+      <p class="hint">Deine Daten werden direkt an WebUntis weitergeleitet und nicht gespeichert.<br>Inoffiziell – nicht mit Untis verbunden. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
     </form>
 
     <!-- GitHub-Version: Daten liegen verschlüsselt bei der App -->
@@ -72,14 +72,14 @@
       <p id="unlock-error" class="error" hidden></p>
       <button id="unlock-btn" class="btn primary" type="submit">Öffnen</button>
       <button id="to-register" class="btn ghost" type="button">Neu hier? Zugang anlegen</button>
-      <p class="hint">Inoffiziell – nicht mit Untis verbunden.<br>Die Daten werden automatisch über GitHub aktualisiert.</p>
+      <p class="hint">Inoffiziell – nicht mit Untis verbunden.<br>Die Daten werden automatisch über GitHub aktualisiert. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
     </form>
 
     <!-- GitHub-Version: Zugang anlegen -->
     <form id="register-form" class="card login-card" hidden autocomplete="off">
       <div class="wordmark big">stundenplan<span>.</span></div>
       <h1>Zugang anlegen.</h1>
-      <p class="muted">Deine Untis-Daten werden hier in deinem Browser verschlüsselt. Lesen kann sie nur die Automatik dieser Seite – auch nicht der Betreiber.</p>
+      <p class="muted">Deine Zugangsdaten werden schon hier in deinem Browser verschlüsselt. Öffnen kann sie nur die Automatik dieser Seite – lege einen Zugang aber nur an, wenn du dem Betreiber vertraust.</p>
       <label class="field">
         <span>Schule</span>
         <input id="reg-school" type="text" placeholder="Name wie in der WebUntis-Schulsuche" required>
@@ -100,6 +100,10 @@
         <span>App-Passwort wiederholen</span>
         <input id="reg-app2" type="password" autocomplete="new-password" minlength="10" required>
       </label>
+      <label class="check consent"><input id="reg-consent" type="checkbox" required>
+        <span>Ich bin mindestens 14 Jahre alt (oder meine Eltern sind einverstanden), habe die
+        <a href="rechtliches.html#datenschutz" target="_blank">Datenschutzerklärung</a> gelesen und willige ein,
+        dass meine Untis-Daten wie dort beschrieben verarbeitet werden. Widerruf jederzeit durch „Zugang löschen“.</span></label>
       <p id="register-error" class="error" hidden></p>
       <button class="btn primary" type="submit">Verschlüsselten Code erstellen</button>
       <button class="btn ghost to-unlock" type="button">Zurück zum Login</button>
@@ -112,7 +116,7 @@
       <textarea id="reg-code" class="code-box" readonly rows="4"></textarea>
       <a id="reg-issue" class="btn primary" target="_blank" rel="noopener">Über GitHub einreichen</a>
       <button id="reg-copy" class="btn" type="button">Code kopieren</button>
-      <p class="hint">Ohne GitHub-Konto: Code kopieren und dem Betreiber der Seite schicken.<br>Er kann damit nichts lesen – nur einreichen.</p>
+      <p class="hint">Ohne GitHub-Konto: Code kopieren und dem Betreiber der Seite schicken – er reicht ihn für dich ein.</p>
       <button class="btn ghost to-unlock" type="button">Zum Login</button>
     </section>
   </main>
@@ -131,6 +135,10 @@
         <div class="sb-actions">
           <button class="btn icon" id="theme-btn" aria-label="Design wechseln" title="Hell/Dunkel">◐</button>
           <button class="btn ghost" id="logout-btn">Abmelden</button>
+        </div>
+        <div class="sb-legal">
+          <button class="link-btn delete-account" type="button" hidden>Zugang löschen</button>
+          <a href="rechtliches.html">Datenschutz & Offenlegung</a>
         </div>
       </div>
     </aside>
@@ -158,6 +166,10 @@
       <div class="sheet-actions">
         <button class="btn" data-action="theme">◐ Hell / Dunkel</button>
         <button class="btn" data-action="logout">Abmelden</button>
+      </div>
+      <div class="sheet-legal">
+        <button class="link-btn delete-account" type="button" hidden>Zugang löschen</button>
+        <a href="rechtliches.html">Datenschutz & Offenlegung</a>
       </div>
     </section>
   </div>

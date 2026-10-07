@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Datenschutz & Offenlegung · stundenplan.</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="fonts/fonts.css">
+  <link rel="stylesheet" href="style.css">
+  <script src="config.js"></script>
+  <script>
+    try { const t = JSON.parse(localStorage.getItem('theme')); if (t) document.documentElement.dataset.theme = t; } catch {}
+  </script>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <main class="legal">
+    <a class="btn back" href="./">← Zurück zur App</a>
+    <div class="wordmark big">stundenplan<span>.</span></div>
+
+    <article class="card legal-card" id="datenschutz">
+      <h1>Datenschutzerklärung</h1>
+      <p class="muted">Kurz und verständlich – Stand: Oktober 2026</p>
+
+      <h2>1. Wer ist verantwortlich?</h2>
+      <p><span data-site="operatorName"></span>, <span data-site="operatorPlace"></span><br>
+        E-Mail: <span data-site="contactEmail"></span>
+        <span class="guardian">· mitverantwortlich: <span data-site="legalGuardian"></span></span></p>
+      <p>Das ist eine <b>private, nicht kommerzielle</b> Seite. Sie ist <b>inoffiziell</b> und weder mit der Untis GmbH
+        noch mit deiner Schule verbunden.</p>
+
+      <h2>2. Was macht die App?</h2>
+      <p>Sie zeigt dir deine eigenen Daten aus WebUntis in einer eigenen Ansicht an – nur dir, nach Eingabe deines App-Passworts.</p>
+
+      <h2>3. Welche Daten werden verarbeitet?</h2>
+      <ul>
+        <li><b>Beim Anlegen des Zugangs:</b> Schulname, Untis-Benutzername, Untis-Passwort und ein App-Passwort, das du selbst festlegst.</li>
+        <li><b>Aus WebUntis:</b> dein Name, Schule, Klasse, Stundenplan mit Vertretungen und Entfällen, Prüfungen und – falls
+          deine Schule das freigibt – Noten, Hausaufgaben, Mitteilungen, Abwesenheiten, Klassenbucheinträge, Dienste und Sprechstunden.</li>
+        <li><b>Besonders geschützte Daten:</b> Gründe von Abwesenheiten können Gesundheitsdaten sein (Art. 9 DSGVO).</li>
+      </ul>
+
+      <h2>4. Wie sind die Daten geschützt?</h2>
+      <ul>
+        <li>Deine Anmeldedaten werden <b>schon in deinem Browser verschlüsselt</b> (RSA-4096 und AES-256).
+          Öffnen kann sie nur die Automatik dieser Seite (GitHub Actions) mit einem geheimen Schlüssel.</li>
+        <li>Deine Untis-Daten werden mit <b>deinem App-Passwort verschlüsselt</b> (AES-256-GCM).
+          Ohne dieses Passwort kann sie niemand lesen – auch der Betreiber nicht.</li>
+        <li><b>Ehrlicher Hinweis:</b> Der Betreiber verwaltet die Automatik. Er sieht deine Zugangsdaten nicht,
+          könnte die Automatik technisch aber so verändern, dass er an sie herankommt. Lege deshalb nur dann einen
+          Zugang an, wenn du dem Betreiber vertraust.</li>
+      </ul>
+
+      <h2>5. Wo werden die Daten gespeichert?</h2>
+      <ul>
+        <li><b>GitHub</b> (GitHub Inc., eine Tochter von Microsoft, USA): Dort liegen deine verschlüsselten Anmeldedaten
+          im Repository und deine verschlüsselten Untis-Daten auf GitHub Pages. Beim Abholen alle 30 Minuten
+          werden die Daten auf GitHub-Servern kurz unverschlüsselt im Arbeitsspeicher verarbeitet.
+          GitHub ist nach dem EU-US Data Privacy Framework zertifiziert.</li>
+        <li><b>WebUntis</b> (Untis GmbH, Österreich) ist die Quelle der Daten.</li>
+        <li><b>Auf deinem Gerät</b> (im Browser-Speicher): dein Benutzername, das gewählte Design und – nur wenn du
+          „Auf diesem Gerät merken“ wählst – dein App-Passwort.</li>
+        <li>Es gibt <b>keine Cookies, kein Tracking, keine Werbung und keine Statistik</b>. Schriften liegen direkt bei der App,
+          es werden keine Dienste von Google oder anderen eingebunden.</li>
+        <li>Wer den Zugang über ein GitHub-Issue einreicht, ist dort mit seinem GitHub-Konto sichtbar.</li>
+      </ul>
+
+      <h2>6. Wofür und auf welcher Grundlage?</h2>
+      <p>Ausschließlich, um dir deine Daten anzuzeigen. Grundlage ist deine <b>Einwilligung</b>
+        (Art. 6 Abs. 1 lit. a DSGVO, für Gesundheitsdaten Art. 9 Abs. 2 lit. a DSGVO).
+        Du kannst sie jederzeit widerrufen, indem du deinen Zugang löschst.</p>
+
+      <h2>7. Wie lange?</h2>
+      <p>Bis du deinen Zugang löschst. Deine Untis-Daten werden alle 30 Minuten neu erzeugt und die alten dabei überschrieben.
+        Nach dem Löschen wird nichts mehr abgeholt und deine Datei entfernt. In der Versionsgeschichte des Repositories
+        bleibt nur dein <b>verschlüsselter</b> Anmeldecode zurück, der ohne den geheimen Schlüssel nicht lesbar ist.
+        Die Protokolle der Automatik enthalten keine Namen oder Inhalte.</p>
+
+      <h2>8. Mindestalter</h2>
+      <p>Du musst mindestens <b>14 Jahre</b> alt sein (§ 4 Abs. 4 DSG). Wenn du jünger bist, brauchst du die Zustimmung deiner Eltern.</p>
+
+      <h2>9. Deine Rechte</h2>
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit,
+        Widerspruch und Widerruf deiner Einwilligung. Schreib dafür an die E-Mail oben.
+        Außerdem kannst du dich bei der österreichischen <a href="https://www.dsb.gv.at" target="_blank" rel="noopener">Datenschutzbehörde</a> beschweren.</p>
+
+      <h2>10. Zugang löschen</h2>
+      <p>In der App unter <b>„Zugang löschen“</b> (Seitenleiste bzw. „Mehr“) – oder per E-Mail an den Betreiber.</p>
+    </article>
+
+    <article class="card legal-card" id="offenlegung">
+      <h1>Offenlegung</h1>
+      <p class="muted">gemäß § 25 Mediengesetz</p>
+      <p><b>Medieninhaber:</b> <span data-site="operatorName"></span>, <span data-site="operatorPlace"></span></p>
+      <p><b>Kontakt:</b> <span data-site="contactEmail"></span></p>
+      <p><b>Grundlegende Richtung:</b> Private, nicht kommerzielle Website zur übersichtlichen Anzeige des eigenen Stundenplans.</p>
+      <p class="muted">Untis und WebUntis sind Marken der Untis GmbH. Diese Seite ist nicht mit der Untis GmbH verbunden.
+        Schriften: Manrope, Space Grotesk, JetBrains Mono (<a href="fonts/OFL.txt">SIL Open Font License</a>).</p>
+    </article>
+  </main>
+
+  <script>
+    // Angaben aus config.js einsetzen; fehlende deutlich markieren
+    const site = window.SITE || {};
+    document.querySelectorAll('[data-site]').forEach((el) => {
+      const v = (site[el.dataset.site] || '').trim();
+      el.textContent = v || '[bitte in config.js eintragen]';
+      el.classList.toggle('missing', !v);
+    });
+    if (!(site.legalGuardian || '').trim()) document.querySelectorAll('.guardian').forEach((el) => el.remove());
+  </script>
+</body>
+</html>

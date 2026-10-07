@@ -1,6 +1,6 @@
-name: Anmeldung
+name: Zugang verwalten
 
-# Neue Nutzer eröffnen über die App ein Issue mit dem Titel „Anmeldung“ und ihrem verschlüsselten Code.
+# Nutzer eröffnen über die App ein Issue „Anmeldung“ oder „Löschen“ mit ihrem verschlüsselten Code.
 on:
   issues:
     types: [opened]
@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   register:
-    if: startsWith(github.event.issue.title, 'Anmeldung')
+    if: startsWith(github.event.issue.title, 'Anmeldung') || startsWith(github.event.issue.title, 'Löschen')
     runs-on: ubuntu-latest
     env:
       TZ: Europe/Vienna
@@ -39,15 +39,15 @@ jobs:
 
       - name: Code aus dem Issue entfernen
         if: always()
-        run: gh issue edit "$NUMBER" --repo "$GITHUB_REPOSITORY" --body "Der Anmeldecode wurde entfernt."
+        run: gh issue edit "$NUMBER" --repo "$GITHUB_REPOSITORY" --body "Der Code wurde entfernt."
 
-      - name: Zugang speichern
+      - name: Änderung speichern
         if: steps.reg.outputs.result == 'ok'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add users
-          git commit -m "Zugang hinzugefügt oder aktualisiert" || exit 0
+          git add -A users
+          git commit -m "Zugang angelegt, geändert oder gelöscht" || exit 0
           git pull --rebase
           git push
 

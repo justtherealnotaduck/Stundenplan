@@ -9,10 +9,11 @@ Abwesenheiten und mehr. Läuft komplett kostenlos über GitHub, ohne eigenen Ser
 
 1. **Zugang anlegen:** Auf der Seite „Neu hier? Zugang anlegen“ wählen und Schule, Untis-Login und ein neues
    App-Passwort eingeben. Der Browser verschlüsselt alles mit dem öffentlichen Schlüssel der Seite
-   (RSA-4096 + AES-256). Öffnen kann das **nur die GitHub-Automatik** dieses Repositories – auch der Betreiber nicht.
+   (RSA-4096 + AES-256). Öffnen kann das **nur die GitHub-Automatik** dieses Repositories. Der Betreiber sieht die
+   Daten nicht im Klartext – er verwaltet aber die Automatik, deshalb sollten nur Leute mitmachen, die ihm vertrauen.
 2. **Einreichen:** Mit „Über GitHub einreichen“ entsteht ein Issue mit dem Code. Die Automatik prüft den Login,
    nimmt den Zugang auf, entfernt den Code aus dem Issue und schließt es.
-   Ohne GitHub-Konto: Code kopieren und dem Betreiber schicken – er kann ihn nur einreichen, nicht lesen.
+   Ohne GitHub-Konto: Code kopieren und dem Betreiber schicken, er reicht ihn ein.
 3. **Aktualisieren:** Alle 30 Minuten (ca. 5–22 Uhr) holt **GitHub Actions** für jeden Nutzer die Daten und
    verschlüsselt sie mit seinem App-Passwort.
 4. **Ansehen:** Mit Untis-Benutzername und App-Passwort anmelden – der Browser entschlüsselt nur die eigenen Daten.
@@ -34,7 +35,9 @@ Abwesenheiten und mehr. Läuft komplett kostenlos über GitHub, ohne eigenen Ser
 - Die Daten sind höchstens ca. 30 Minuten alt. In der Seitenleiste steht, von wann sie sind.
 - Gespeichert werden 2 Wochen zurück bis 5 Wochen voraus, für andere Klassen diese und nächste Woche.
 - **Passwort geändert?** Einfach einen neuen Zugang mit demselben Benutzernamen anlegen – er ersetzt den alten.
-- **Zugang löschen:** Die Datei des Nutzers im Ordner `users/` löschen.
+- **Zugang löschen:** In der App „Zugang löschen“ – oder als Betreiber die Datei im Ordner `users/` löschen.
+- **Rechtliches:** Betreiber-Angaben in `public/config.js` eintragen. Sie erscheinen auf `rechtliches.html`
+  (Datenschutzerklärung und Offenlegung nach § 25 Mediengesetz).
 - Geht der geheime Schlüssel verloren, muss jeder seinen Zugang neu anlegen.
 - Die Protokolle unter *Actions* enthalten absichtlich keine Namen oder Inhalte – sie sind öffentlich.
 - Ein **starkes App-Passwort** wählen: Die verschlüsselten Dateien sind öffentlich abrufbar.

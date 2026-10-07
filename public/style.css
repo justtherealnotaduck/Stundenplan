@@ -1161,3 +1161,34 @@ dialog[open] { animation: dlg-in 0.5s cubic-bezier(.34, 1.4, .5, 1); }
   :is(.card, .lesson, .btn, .mini, .chip, .nav a, .day-tabs button, .msg)::after { display: none; }
   .lesson:hover, a.stat:hover, .mini:hover { transform: none; }
 }
+
+/* =========================================================
+   Rechtliches, Einwilligung, Zugang löschen
+   ========================================================= */
+
+.consent { align-items: flex-start; font-size: 12.5px; font-weight: 500; line-height: 1.45; color: var(--muted); }
+.consent input { flex: none; margin-top: 1px; }
+.consent a, .hint a { color: var(--text); font-weight: 700; }
+
+.sb-legal, .sheet-legal { display: flex; flex-wrap: wrap; gap: 4px 14px; padding: 0 6px; font-size: 12px; }
+.sheet-legal { justify-content: center; margin-top: 16px; }
+.sb-legal a, .sheet-legal a { color: var(--muted); text-decoration: none; }
+.sb-legal a:hover, .sheet-legal a:hover { color: var(--text); }
+.link-btn { font: inherit; background: none; border: 0; padding: 0; color: var(--danger); cursor: pointer; }
+.link-btn:hover { text-decoration: underline; }
+
+.dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 4px; }
+.dlg-actions .btn { flex: 1; text-align: center; text-decoration: none; }
+dialog .code-box { width: 100%; margin-top: 12px; }
+
+.legal { max-width: 760px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 16px 48px; display: flex; flex-direction: column; gap: 18px; }
+.legal .back { align-self: flex-start; text-decoration: none; }
+.legal-card { padding: 30px 32px; }
+.legal-card h1 { margin: 0 0 4px; font-size: 30px; }
+.legal-card h2 { margin: 26px 0 8px; font-size: 17px; }
+.legal-card p, .legal-card li { line-height: 1.6; }
+.legal-card ul { padding-left: 20px; margin: 0; }
+.legal-card li { margin: 6px 0; }
+.legal-card a { color: var(--text); font-weight: 700; }
+.missing { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); padding: 0 6px; border-radius: 6px; font-weight: 700; }
+@media (max-width: 600px) { .legal-card { padding: 22px 18px; } }

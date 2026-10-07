@@ -144,7 +144,8 @@ function loadUsers() {
     for (const f of files) {
       try {
         const { code } = JSON.parse(fs.readFileSync(path.join(USERS_DIR, f), 'utf8'));
-        users.push(decryptRegistration(code, key));
+        const p = decryptRegistration(code, key);
+        if (p.action === 'register') users.push(p);
       } catch (e) {
         console.log(`Anmeldung ${f.slice(0, 6)}… kann nicht gelesen werden (${e.message})`);
       }
