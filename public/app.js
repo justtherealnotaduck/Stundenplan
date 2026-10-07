@@ -69,15 +69,37 @@ function htmlToText(html) {
   return doc.body.textContent.replace(/\n{3,}/g, '\n\n').trim();
 }
 
+// Online (GitHub Pages) läuft die API beim Cloudflare Worker (apiBase in config.js),
+// lokal beim eigenen Node-Server unter derselben Adresse.
+const API_BASE = (window.SITE?.apiBase || '').replace(/\/$/, '');
+
+// Online meldet ein Token an (vom Worker verschlüsselt). „Angemeldet bleiben“ → localStorage, sonst nur für diese Sitzung.
+function authToken() {
+  try { return localStorage.getItem('token') || sessionStorage.getItem('token'); } catch { return null; }
+}
+function saveToken(token, remember) {
+  try {
+    clearToken();
+    (remember ? localStorage : sessionStorage).setItem('token', token);
+  } catch { state.token = token; }
+}
+function clearToken() {
+  state.token = null;
+  try { localStorage.removeItem('token'); sessionStorage.removeItem('token'); } catch { /* egal */ }
+}
+
 async function api(path, options = {}) {
-  if (state.static) return staticApi(path);
-  const res = await fetch(path, {
+  const token = authToken() || state.token;
+  const res = await fetch(API_BASE + path, {
     ...options,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) },
     body: options.body ? JSON.stringify(options.body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
-  if (res.status === 401 && !path.startsWith('/api/login') && !path.startsWith('/api/me')) showLogin();
+  if (res.status === 401 && !path.startsWith('/api/login') && !path.startsWith('/api/me')) {
+    clearToken();
+    showLogin();
+  }
   if (!res.ok) throw Object.assign(new Error(data.error || 'Fehler'), { status: res.status });
   return data;
 }
@@ -119,16 +141,11 @@ $('#theme-btn').addEventListener('click', () => {
 // ---------- Login ----------
 
 function showLogin() {
-  stopSetupPolling();
   $('#app-view').hidden = true;
   $('#login-view').hidden = false;
-  $('#setup-panel').hidden = true;
-  $('#login-form').hidden = false;
   state.cache.clear();
-  if (state.static) {
-    const user = store('lastUser');
-    if (user && !$('#user-input').value) $('#user-input').value = user;
-  }
+  const user = store('lastUser');
+  if (user && !$('#user-input').value) $('#user-input').value = user;
   const last = store('school');
   if (last) {
     state.school = last;
@@ -145,8 +162,8 @@ $('#school-input').addEventListener('input', (e) => {
   state.school = null;
   clearTimeout(searchTimer);
   const q = e.target.value.trim();
-  if (q.length < (state.static ? 2 : 3)) return ($('#school-results').hidden = true);
-  searchTimer = setTimeout(() => searchSchools(q), state.static ? 60 : 300);
+  if (q.length < 3) return ($('#school-results').hidden = true);
+  searchTimer = setTimeout(() => searchSchools(q), 300);
 });
 
 $('#school-input').addEventListener('keydown', (e) => {
@@ -171,15 +188,14 @@ document.addEventListener('click', (e) => {
 async function searchSchools(q) {
   const list = $('#school-results');
   try {
-    // GitHub-Version: Vorschläge aus der Schulliste, sonst live über den lokalen Server
-    const r = state.static ? await localSchools(q) : await api('/api/schools?q=' + encodeURIComponent(q));
+    const r = await api('/api/schools?q=' + encodeURIComponent(q));
     if (r.tooMany) {
       searchResults = [];
       list.innerHTML = '<li class="empty">Zu viele Treffer, bitte genauer suchen.</li>';
     } else {
       searchResults = r;
       list.innerHTML = r.length
-        ? r.map((s, i) => `<li data-i="${i}"${s.manual ? ' class="manual"' : ''}>${esc(s.manual ? `„${s.name}“` : s.name)}<small>${esc(s.address)}</small></li>`).join('')
+        ? r.map((s, i) => `<li data-i="${i}">${esc(s.name)}<small>${esc(s.address)}</small></li>`).join('')
         : '<li class="empty">Keine Schule gefunden.</li>';
     }
   } catch {
@@ -215,11 +231,8 @@ $('#login-form').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Anmelden…';
   try {
-    if (state.static) {
-      await staticLogin(state.school, $('#user-input').value.trim(), $('#password-input').value, $('#remember').checked);
-      return;
-    }
-    await api('/api/login', {
+    const remember = $('#remember').checked;
+    const r = await api('/api/login', {
       method: 'POST',
       body: {
         school: state.school.school,
@@ -227,19 +240,16 @@ $('#login-form').addEventListener('submit', async (e) => {
         server: state.school.server,
         user: $('#user-input').value.trim(),
         password: $('#password-input').value,
+        remember,
       },
     });
+    if (r.token) saveToken(r.token, remember);
     store('school', state.school);
+    store('lastUser', $('#user-input').value.trim());
     $('#password-input').value = '';
     await showApp();
   } catch (ex) {
-    err.textContent = ex.status || !state.static ? ex.message : 'Die Daten konnten nicht geladen werden. Bitte später noch einmal versuchen.';
-    if (ex.setup) {
-      // Untis-Passwort geändert? Dann den Zugang mit dem neuen Passwort neu einrichten
-      err.insertAdjacentHTML('beforeend', ' <button class="link-btn" type="button" id="resetup">Zugang neu einrichten</button>');
-      $('#resetup').addEventListener('click', () =>
-        showSetup(state.school, $('#user-input').value.trim(), $('#password-input').value, $('#remember').checked));
-    }
+    err.textContent = ex.status ? ex.message : 'Keine Verbindung – bitte später noch einmal versuchen.';
     err.hidden = false;
   } finally {
     btn.disabled = false;
@@ -249,6 +259,7 @@ $('#login-form').addEventListener('submit', async (e) => {
 
 $('#logout-btn').addEventListener('click', async () => {
   await api('/api/logout', { method: 'POST' }).catch(() => {});
+  clearToken();
   showLogin();
 });
 
@@ -382,12 +393,6 @@ async function showApp() {
   $('#school-name').textContent = me.schoolName || '';
   $('#school-year').textContent = me.schoolYear?.name || '';
   $('#school-year').hidden = !me.schoolYear?.name;
-  if (state.data) {
-    // GitHub-Version: zeigen, wie aktuell die Daten sind
-    const stand = 'Stand ' + new Date(state.data.generated).toLocaleString('de', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-    $('#school-year').textContent = [me.schoolYear?.name, stand].filter(Boolean).join(' · ');
-    $('#school-year').hidden = false;
-  }
   const letter = (me.displayName || '?').trim()[0].toUpperCase();
   $('#me-btn').textContent = letter;
   $('#sheet-avatar').textContent = letter;
@@ -847,7 +852,7 @@ async function viewOther(el, stale) {
       drawChips();
     } catch (e) {
       list = [];
-      chips.innerHTML = `<span class="muted">${(e.status === 400 || e.status === 403) && !state.data ? 'Diese Liste gibt deine Schule nicht frei.' : esc(e.message)}</span>`;
+      chips.innerHTML = `<span class="muted">${e.status === 400 || e.status === 403 ? 'Diese Liste gibt deine Schule nicht frei.' : esc(e.message)}</span>`;
     }
   };
 
@@ -1402,348 +1407,10 @@ document.addEventListener('keydown', (e) => {
 
 addEventListener('scroll', () => ($('#bubble').hidden = true), { passive: true, capture: true });
 
-// ---------- GitHub-Version (ohne Server) ----------
-// GitHub Actions legt für jeden Nutzer verschlüsselte Daten als data/<id>.enc.json neben die App.
-// Der Browser entschlüsselt sie mit dem App-Passwort; alle /api-Aufrufe werden dann daraus beantwortet.
-
-const b64 = (str) => Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
-
-async function decryptBundle(enc, password) {
-  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
-  const key = await crypto.subtle.deriveKey(
-    { name: 'PBKDF2', salt: b64(enc.salt), iterations: enc.iter, hash: 'SHA-256' },
-    base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
-  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(enc.iv) }, key, b64(enc.data));
-  const stream = new Blob([plain]).stream().pipeThrough(new DecompressionStream('gzip'));
-  return JSON.parse(await new Response(stream).text());
-}
-
-const staticError = (status, message) => Object.assign(new Error(message), { status });
-
-function staticApi(path) {
-  const d = state.data;
-  const url = new URL(path, location.href);
-  const p = url.pathname.slice(url.pathname.indexOf('/api/'));
-  if (p === '/api/logout') {
-    store('unlock', null);
-    state.data = null;
-    state.creds = null;
-    state.pending = null;
-    return Promise.resolve({ ok: true });
-  }
-  if (!d) return Promise.reject(staticError(401, 'Gesperrt'));
-
-  const today = new Date();
-  const key = untisDate(today);
-  const until = (days) => untisDate(addDays(today, days));
-  const need = (v, msg = 'Diesen Bereich gibt deine Schule für die App nicht frei.') =>
-    (v === null || v === undefined ? Promise.reject(staticError(403, msg)) : Promise.resolve(v));
-
-  const msg = /^\/api\/messages\/(.+)$/.exec(p);
-  if (msg) return need(d.messageDetails?.[decodeURIComponent(msg[1])], 'Nur die neuesten Mitteilungen sind gespeichert – bitte in WebUntis öffnen.');
-  const sec = /^\/api\/section\/(\w+)$/.exec(p);
-  if (sec) return need(d.sections?.[sec[1]]);
-
-  switch (p) {
-    case '/api/me': return Promise.resolve(d.me);
-    case '/api/timetable': {
-      const start = url.searchParams.get('start');
-      const type = Number(url.searchParams.get('type')), id = Number(url.searchParams.get('id'));
-      if (type === 1) return need(d.classWeeks?.[`${id}:${start}`], 'Für andere Klassen sind nur diese und nächste Woche gespeichert.');
-      return need(d.weeks?.[start], 'Diese Woche ist nicht gespeichert (verfügbar: 2 Wochen zurück bis 5 Wochen voraus).');
-    }
-    case '/api/elements':
-      return Number(url.searchParams.get('type')) === 1
-        ? need(d.classes)
-        : Promise.reject(staticError(403, 'In der GitHub-Version gibt es nur die Stundenpläne der Klassen.'));
-    case '/api/exams': return need(d.exams);
-    case '/api/homework': return need(d.homework);
-    case '/api/absences': return need(d.absences);
-    case '/api/messages': return need(d.messages);
-    case '/api/news': return Promise.resolve(d.newsDate === key ? d.news : []);
-    case '/api/day':
-      return Promise.resolve({
-        timetable: d.weeks?.[isoDate(mondayOf(today))] || { periods: [], timegrid: [], holidays: [], exams: [] },
-        homework: d.homework && d.homework.filter((h) => h.dueDate >= key && h.dueDate <= until(14)),
-        exams: d.exams && d.exams.filter((x) => x.date >= key && x.date <= until(28)),
-        news: d.newsDate === key ? d.news : [],
-      });
-    default: return Promise.reject(staticError(404, 'Nicht gefunden'));
-  }
-}
-
-const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
-
-// Gleiche Ableitung wie lib/secure.js userId(): Dateiname verrät den Benutzernamen nicht
-async function userId(username) {
-  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(username.trim().toLowerCase()));
-  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 20);
-}
-
-async function fetchUserData(user) {
-  const res = await fetch(`data/${await userId(user)}.enc.json?t=${Date.now()}`, { cache: 'no-store' });
-  return res.ok ? res.json() : null;
-}
-
-// Anmelden in der GitHub-Version: Die Daten sind mit dem Untis-Passwort verschlüsselt.
-// Gibt es noch keine Daten, wird der Zugang einmalig eingerichtet.
-async function staticLogin(school, user, password, remember) {
-  const enc = await fetchUserData(user);
-  if (!enc) return showSetup(school, user, password, remember);
-  let data;
-  try {
-    data = await decryptBundle(enc, password);
-  } catch {
-    throw Object.assign(new Error('Das Passwort passt nicht. Hast du dein Untis-Passwort geändert?'), { status: 401, setup: true });
-  }
-  await finishLogin({ school, user, password, remember }, enc, data);
-}
-
-async function finishLogin(p, enc, data) {
-  state.data = data;
-  state.encrypted = enc;
-  state.creds = { user: p.user, password: p.password };
-  state.pending = null;
-  if (p.school) {
-    const { name, address, school, server, manual } = p.school;
-    store('school', { name, address, school, server, manual });
-  }
-  store('lastUser', p.user);
-  store('unlock', p.remember ? { user: p.user, password: p.password } : null);
-  $('#password-input').value = '';
-  state.cache.clear();
-  await showApp();
-}
-
-// Wenn die App wieder in den Vordergrund kommt: neuere Daten holen (GitHub aktualisiert alle 30 Minuten)
-document.addEventListener('visibilitychange', async () => {
-  if (document.hidden || !state.data || !state.creds) return;
-  const enc = await fetchUserData(state.creds.user).catch(() => null);
-  if (!enc || enc.data === state.encrypted.data) return;
-  try {
-    state.data = await decryptBundle(enc, state.creds.password);
-    state.encrypted = enc;
-    state.cache.clear();
-    showApp();
-  } catch { /* Passwort wurde geändert: beim nächsten Öffnen neu anmelden */ }
-});
-
-// ---------- Verschlüsselte Codes für die Automatik ----------
-// Die Zugangsdaten werden im Browser mit dem öffentlichen Schlüssel der Seite verschlüsselt.
-// Öffnen kann sie nur die GitHub-Automatik dieses Repositories.
-
-async function makeRegistrationCode(payload) {
-  const { spki } = await (await fetch('register-key.json', { cache: 'no-store' })).json();
-  const pub = await crypto.subtle.importKey('spki', b64(spki), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
-  const aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const d = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, new TextEncoder().encode(JSON.stringify(payload)));
-  const k = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pub, await crypto.subtle.exportKey('raw', aes));
-  const json = JSON.stringify({ k: toB64(k), iv: toB64(iv), d: toB64(d) });
-  const base64url = btoa(String.fromCharCode(...new TextEncoder().encode(json)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-  return 'SP1.' + base64url;
-}
-
-const CONSENT_VERSION = '2026-10'; // Stand der Datenschutzerklärung, der zugestimmt wurde
-
-// Auf GitHub Pages (name.github.io/repo/) lässt sich das Repository aus der Adresse ablesen
-function repoFromLocation() {
-  const owner = /^([^.]+)\.github\.io$/i.exec(location.hostname)?.[1];
-  const repo = location.pathname.split('/').filter(Boolean)[0];
-  return owner && repo ? `${owner}/${repo}` : null;
-}
-
-function issueUrl(title, code) {
-  const repo = repoFromLocation();
-  const body = 'Bitte nichts ändern – der Code ist verschlüsselt und nur für die Automatik lesbar.\n\n' + code;
-  return repo ? `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}` : null;
-}
-
-// ---------- Schulvorschläge (GitHub-Version) ----------
-// Die Untis-Schulsuche ist aus dem Browser gesperrt (CORS). GitHub Actions legt deshalb eine
-// Schulliste (schools.json) zur App; daraus werden beim Tippen Schulen vorgeschlagen.
-
-const norm = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
-let schoolListPromise = null;
-
-function loadSchoolList() {
-  schoolListPromise ||= fetch('schools.json')
-    .then((r) => (r.ok ? r.json() : { schools: [] }))
-    .then((d) => d.schools.map(([name, address, school, server]) => ({ name, address, school, server, key: norm(name + ' ' + address) })))
-    .catch(() => []);
-  return schoolListPromise;
-}
-
-async function localSchools(q) {
-  const all = await loadSchoolList();
-  const tokens = norm(q).split(/\s+/).filter(Boolean);
-  const first = norm(q);
-  const hits = all
-    .filter((s) => tokens.every((t) => s.key.includes(t)))
-    .sort((a, b) => (norm(b.name).startsWith(first) - norm(a.name).startsWith(first)) || a.name.localeCompare(b.name, 'de'))
-    .slice(0, 8);
-  // Letzter Eintrag: Eingabe übernehmen, falls die Schule nicht in der Liste ist (z. B. außerhalb Österreichs)
-  hits.push({ name: q, address: 'Nicht in der Liste – so verwenden (Name genau wie in WebUntis)', manual: true });
-  return hits;
-}
-
-// ---------- Erste Anmeldung: Zugang einmalig einrichten ----------
-
-let setupTimer = null;
-
-function stopSetupPolling() {
-  clearInterval(setupTimer);
-  setupTimer = null;
-}
-
-function showSetup(school, user, password, remember) {
-  state.pending = { school, user, password, remember };
-  $('#login-form').hidden = true;
-  $('#setup-panel').hidden = false;
-  $('#setup-step1').hidden = false;
-  $('#setup-step2').hidden = true;
-  $('#setup-error').hidden = true;
-  $('#setup-hint').hidden = true;
-  $('#setup-consent').checked = false;
-}
-
-$('#setup-start').addEventListener('click', async () => {
-  const p = state.pending, err = $('#setup-error');
-  err.hidden = true;
-  if (!$('#setup-consent').checked) {
-    err.textContent = 'Bitte bestätige Alter und Datenschutzerklärung.';
-    err.hidden = false;
-    return;
-  }
-  try {
-    const code = await makeRegistrationCode({
-      action: 'register',
-      school: p.school.name,
-      schoolLogin: p.school.manual ? undefined : p.school.school,
-      server: p.school.manual ? undefined : p.school.server,
-      user: p.user,
-      password: p.password,
-      appPassword: p.password, // die Daten werden mit dem Untis-Passwort verschlüsselt
-      consent: { version: CONSENT_VERSION, at: new Date().toISOString() },
-      created: new Date().toISOString(),
-    });
-    $('#setup-code').value = code;
-    const url = issueUrl('Anmeldung', code);
-    $('#setup-issue').hidden = !url;
-    if (url) $('#setup-issue').href = url;
-    $('#setup-step1').hidden = true;
-    $('#setup-step2').hidden = false;
-    startSetupPolling();
-  } catch {
-    err.textContent = 'Das hat nicht geklappt. Bitte die Seite neu laden und noch einmal versuchen.';
-    err.hidden = false;
-  }
-});
-
-// Alle 15 Sekunden schauen, ob die Automatik die Daten schon bereitgestellt hat – dann automatisch anmelden
-function startSetupPolling() {
-  stopSetupPolling();
-  const started = Date.now();
-  const tick = async () => {
-    const p = state.pending;
-    if (!p) return stopSetupPolling();
-    const min = Math.floor((Date.now() - started) / 60000);
-    $('#setup-status').textContent = min < 1 ? 'Warte auf die Einrichtung …' : `Warte auf die Einrichtung … (${min} Min.)`;
-    if (min >= 8) $('#setup-hint').hidden = false;
-    const enc = await fetchUserData(p.user).catch(() => null);
-    if (!enc) return;
-    let data;
-    try { data = await decryptBundle(enc, p.password); } catch { return; } // noch alte Daten mit altem Passwort
-    stopSetupPolling();
-    await finishLogin(p, enc, data);
-  };
-  setupTimer = setInterval(tick, 15000);
-  tick();
-}
-
-$('#setup-cancel').addEventListener('click', () => {
-  state.pending = null;
-  showLogin();
-});
-
-$('#setup-copy').addEventListener('click', async () => {
-  try {
-    await navigator.clipboard.writeText($('#setup-code').value);
-    $('#setup-copy').textContent = 'Kopiert ✓';
-  } catch {
-    $('#setup-code').select();
-    $('#setup-copy').textContent = 'Markiert – jetzt kopieren';
-  }
-  setTimeout(() => ($('#setup-copy').textContent = 'Code kopieren'), 2500);
-});
-
-// ---------- Zugang löschen (GitHub-Version) ----------
-// Erzeugt einen verschlüsselten Löschauftrag. Die Automatik prüft das Passwort und entfernt den Zugang.
-
-$$('.delete-account').forEach((b) => b.addEventListener('click', () => {
-  closeSheet();
-  $('#details-body').innerHTML = `
-    <h2>Zugang löschen?</h2>
-    <p class="muted">Danach holt die Automatik keine Daten mehr für dich ab und deine Datei wird entfernt.
-      Wenn du dich später wieder anmeldest, wird der Zugang einfach neu eingerichtet.</p>
-    <p id="del-error" class="error" hidden></p>
-    <div class="dlg-actions"><button class="btn primary" id="del-make" type="button">Ja, Zugang löschen</button></div>`;
-  $('#details').showModal();
-  $('#del-make').addEventListener('click', async () => {
-    try {
-      const code = await makeRegistrationCode({
-        action: 'delete',
-        user: state.creds.user,
-        appPassword: state.creds.password,
-        created: new Date().toISOString(),
-      });
-      const url = issueUrl('Löschen', code);
-      $('#details-body').innerHTML = `
-        <h2>Fast gelöscht.</h2>
-        <p class="muted">Bestätige das Löschen bei GitHub. Nach ein paar Minuten ist dein Zugang entfernt.
-          Ohne GitHub-Konto: Code kopieren und dem Betreiber schicken.</p>
-        <textarea class="code-box" readonly rows="4">${esc(code)}</textarea>
-        <div class="dlg-actions">
-          ${url ? `<a class="btn primary" href="${esc(url)}" target="_blank" rel="noopener">Bei GitHub bestätigen</a>` : ''}
-          <button class="btn" id="del-copy" type="button">Code kopieren</button>
-        </div>`;
-      $('#del-copy').addEventListener('click', () => navigator.clipboard?.writeText(code).then(() => ($('#del-copy').textContent = 'Kopiert ✓')));
-      store('unlock', null); // auf diesem Gerät nicht mehr automatisch anmelden
-    } catch {
-      $('#del-error').textContent = 'Der Löschauftrag konnte nicht erstellt werden. Bitte noch einmal versuchen.';
-      $('#del-error').hidden = false;
-    }
-  });
-}));
-
 // ---------- Start ----------
 
-(async function start() {
-  // Antwortet /api/me, läuft der lokale Server. Sonst (z. B. GitHub Pages) die GitHub-Version.
-  const res = await fetch('/api/me').catch(() => null);
-  if (res && (res.ok || res.status === 401)) {
-    return res.ok ? showApp() : showLogin();
-  }
-  state.static = true;
-  $$('.delete-account').forEach((b) => (b.hidden = false));
-  $('#remember-row').hidden = false;
-  $('#login-hint').textContent = 'Deine Daten werden verschlüsselt und nur mit deinem Untis-Passwort lesbar gespeichert.';
-  loadSchoolList();
-  showLogin();
-  const saved = store('unlock');
-  if (saved?.user) {
-    // Gemerkte Anmeldung: Login-Fenster mit „Anmelden…“ zeigen statt einer leeren Seite
-    const btn = $('#login-btn');
-    btn.disabled = true;
-    btn.textContent = 'Anmelden…';
-    try {
-      const enc = await fetchUserData(saved.user);
-      await finishLogin({ ...saved, school: store('school'), remember: true }, enc, await decryptBundle(enc, saved.password));
-    } catch {
-      store('unlock', null);
-    }
-    btn.disabled = false;
-    btn.textContent = 'Anmelden';
-  }
-})();
+if (API_BASE) $('#remember-row').hidden = false; // Online-Version: „angemeldet bleiben“ anbieten
+
+api('/api/me')
+  .then(() => showApp())
+  .catch(showLogin);

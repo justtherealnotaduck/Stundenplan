@@ -3,3 +3,5 @@ public/data/
 *.log
 .env
 private-key.txt
+.dev.vars
+.wrangler/

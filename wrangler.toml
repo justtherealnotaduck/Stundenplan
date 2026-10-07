@@ -1,0 +1,9 @@
+# Cloudflare Worker (Online-Version des lokalen Servers). Veröffentlichen: npx wrangler deploy
+name = "stundenplan-api"
+main = "worker/index.js"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+# Von welchen Seiten aus die API benutzt werden darf (kommagetrennt)
+ALLOWED_ORIGINS = "https://justtherealnotaduck.github.io"

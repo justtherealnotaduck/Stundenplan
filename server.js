@@ -6,11 +6,8 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const {
-  httpError, ymd, addDays, parseIso, rpc, apiUrl, untisCookie, authenticate,
-  searchSchools, loadProfile, timetable, elements, exams, homework, absences, messages, message, news,
-  section, probe,
-} = require('./lib/untis');
+const { probe } = require('./lib/untis');
+const api = require('./lib/routes');
 
 const PORT = process.env.PORT || 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -72,41 +69,6 @@ function serveStatic(req, res) {
   });
 }
 
-// Routen, die eine Anmeldung brauchen: Pfad -> (Sitzung, URL) => Antwort
-const routes = {
-  '/api/me': async (s) => ({
-    user: s.user,
-    displayName: s.displayName || s.user,
-    schoolName: s.schoolName,
-    schoolYear: s.schoolYear,
-    personType: s.untis.personType,
-  }),
-  '/api/timetable': async (s, url) => {
-    const start = parseIso(url.searchParams.get('start'));
-    if (!start) throw httpError(400, 'Ungültiges Datum');
-    const type = Number(url.searchParams.get('type')), id = Number(url.searchParams.get('id'));
-    return timetable(s, start, type && id ? { type, id } : null);
-  },
-  '/api/elements': (s, url) => elements(s, Number(url.searchParams.get('type'))),
-  '/api/exams': (s) => exams(s, s.schoolYear.start, s.schoolYear.end),
-  '/api/homework': (s) => homework(s, ymd(addDays(new Date(), -21)), ymd(addDays(new Date(), 42))),
-  '/api/absences': (s) => absences(s),
-  '/api/messages': (s) => messages(s),
-  '/api/news': (s, url) => news(s, Number(url.searchParams.get('date')) || ymd(new Date())),
-  '/api/day': async (s) => {
-    // Alles für die „Heute“-Seite in einer Anfrage
-    const today = new Date();
-    const monday = addDays(today, -((today.getDay() + 6) % 7));
-    const [tt, hw, ex, nw] = await Promise.all([
-      timetable(s, monday),
-      homework(s, ymd(today), ymd(addDays(today, 14))).catch(() => null),
-      exams(s, ymd(today), ymd(addDays(today, 28))).catch(() => null),
-      news(s, ymd(today)).catch(() => []),
-    ]);
-    return { timetable: tt, homework: hw, exams: ex, news: nw };
-  },
-};
-
 const server = http.createServer(async (req, res) => {
   let url;
   try {
@@ -115,24 +77,11 @@ const server = http.createServer(async (req, res) => {
     return send(res, 400, { error: 'Ungültige Adresse' });
   }
   try {
-    if (url.pathname === '/api/schools' && req.method === 'GET') {
-      const q = (url.searchParams.get('q') || '').trim();
-      if (q.length < 3) return send(res, 200, []);
-      return send(res, 200, await searchSchools(q));
-    }
+    if (url.pathname === '/api/schools' && req.method === 'GET') return send(res, 200, await api.schools(url));
 
     if (url.pathname === '/api/login' && req.method === 'POST') {
-      const { school, schoolName, server: host, user, password } = await readBody(req);
-      if (!school || !host || !user || !password) return send(res, 400, { error: 'Bitte alle Felder ausfüllen.' });
-      if (!/^[a-z0-9.-]+\.webuntis\.com$/i.test(host)) return send(res, 400, { error: 'Ungültiger Server.' });
-      const s = { school, schoolName: schoolName || school, server: host, user, password, created: Date.now(), cache: {} };
-      try {
-        await authenticate(s);
-      } catch (e) {
-        const msg = e.code === -8504 ? 'Benutzername oder Passwort falsch.' : e.message;
-        return send(res, 401, { error: msg });
-      }
-      await loadProfile(s);
+      const s = await api.login(await readBody(req));
+      s.created = Date.now();
       const token = crypto.randomBytes(24).toString('hex');
       sessions.set(token, s);
       probe(s).catch(() => {});
@@ -145,7 +94,7 @@ const server = http.createServer(async (req, res) => {
       const sess = getSession(req);
       if (sess) {
         sessions.delete(sess.token);
-        rpc(apiUrl(sess.s), 'logout', {}, untisCookie(sess.s)).catch(() => {});
+        api.logout(sess.s);
       }
       return send(res, 200, { ok: true }, { 'Set-Cookie': 'sid=; HttpOnly; Path=/; Max-Age=0' });
     }
@@ -153,13 +102,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/api/')) {
       const sess = getSession(req);
       if (!sess) return send(res, 401, { error: 'Nicht angemeldet' });
-      const msg = /^\/api\/messages\/([\w-]+)$/.exec(url.pathname);
-      if (msg) return send(res, 200, await message(sess.s, msg[1]));
-      const sec = /^\/api\/section\/(\w+)$/.exec(url.pathname);
-      if (sec) return send(res, 200, await section(sess.s, sec[1]));
-      const route = routes[url.pathname];
-      if (!route) return send(res, 404, { error: 'Nicht gefunden' });
-      return send(res, 200, await route(sess.s, url));
+      return send(res, 200, await api.handle(sess.s, url));
     }
 
     if (req.method === 'GET') return serveStatic(req, res);

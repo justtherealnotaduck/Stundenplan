@@ -35,59 +35,51 @@
 
       <h2>3. Welche Daten werden verarbeitet?</h2>
       <ul>
-        <li><b>Bei der ersten Anmeldung:</b> Schule, Untis-Benutzername und Untis-Passwort.</li>
-        <li><b>Aus WebUntis:</b> dein Name, Schule, Klasse, Stundenplan mit Vertretungen und Entfällen, Prüfungen und – falls
-          deine Schule das freigibt – Noten, Hausaufgaben, Mitteilungen, Abwesenheiten, Klassenbucheinträge, Dienste und Sprechstunden.</li>
+        <li><b>Beim Anmelden:</b> Schule, Untis-Benutzername und Untis-Passwort.</li>
+        <li><b>Aus WebUntis</b>, sobald du eine Seite öffnest: dein Name, Schule, Klasse, Stundenplan mit Vertretungen und Entfällen,
+          Prüfungen und – falls deine Schule das freigibt – Noten, Hausaufgaben, Mitteilungen, Abwesenheiten,
+          Klassenbucheinträge, Dienste und Sprechstunden.</li>
         <li><b>Besonders geschützte Daten:</b> Gründe von Abwesenheiten können Gesundheitsdaten sein (Art. 9 DSGVO).</li>
       </ul>
 
-      <h2>4. Wie sind die Daten geschützt?</h2>
+      <h2>4. Wie funktioniert das – und was wird gespeichert?</h2>
       <ul>
-        <li>Deine Anmeldedaten werden <b>schon in deinem Browser verschlüsselt</b> (RSA-4096 und AES-256).
-          Öffnen kann sie nur die Automatik dieser Seite (GitHub Actions) mit einem geheimen Schlüssel.</li>
-        <li>Deine Untis-Daten werden mit <b>deinem Untis-Passwort verschlüsselt</b> (AES-256-GCM, PBKDF2 mit 600.000 Runden).
-          Ohne dieses Passwort kann sie niemand lesen – auch der Betreiber nicht. Die verschlüsselten Dateien sind öffentlich
-          abrufbar; ein <b>starkes Untis-Passwort</b> schützt sie am besten.</li>
-        <li><b>Ehrlicher Hinweis:</b> Der Betreiber verwaltet die Automatik. Er sieht deine Zugangsdaten nicht,
-          könnte die Automatik technisch aber so verändern, dass er an sie herankommt. Lege deshalb nur dann einen
-          Zugang an, wenn du dem Betreiber vertraust.</li>
+        <li>Die App läuft auf <b>GitHub Pages</b>. Weil dein Browser WebUntis nicht direkt abfragen darf, gehen die Anfragen
+          über einen kleinen Vermittler bei <b>Cloudflare</b> (Cloudflare Workers). Er reicht sie an WebUntis weiter und
+          die Antwort an dich zurück.</li>
+        <li><b>Es wird nichts gespeichert</b> – keine Passwörter, keine Stundenpläne, keine Noten. Daten werden nur im
+          Moment der Anfrage verarbeitet und danach verworfen.</li>
+        <li>Nach dem Anmelden bekommt dein Browser ein <b>verschlüsseltes Anmelde-Token</b> (AES-256). Darin stecken deine
+          Zugangsdaten, damit du nicht bei jedem Klick neu eingeben musst. Öffnen kann es nur der Vermittler.
+          Es gilt 12 Stunden, mit „Angemeldet bleiben“ 60 Tage, und liegt nur auf deinem Gerät.</li>
+        <li><b>Ehrlicher Hinweis:</b> Der Betreiber verwaltet den Vermittler. Er speichert nichts, könnte ihn technisch aber so
+          verändern, dass er Anfragen mitliest. Melde dich deshalb nur an, wenn du dem Betreiber vertraust.</li>
       </ul>
 
-      <h2>5. Wo werden die Daten gespeichert?</h2>
+      <h2>5. Wer ist beteiligt?</h2>
       <ul>
-        <li><b>GitHub</b> (GitHub Inc., eine Tochter von Microsoft, USA): Dort liegen deine verschlüsselten Anmeldedaten
-          im Repository und deine verschlüsselten Untis-Daten auf GitHub Pages. Beim Abholen alle 30 Minuten
-          werden die Daten auf GitHub-Servern kurz unverschlüsselt im Arbeitsspeicher verarbeitet.
-          GitHub ist nach dem EU-US Data Privacy Framework zertifiziert.</li>
-        <li><b>WebUntis</b> (Untis GmbH, Österreich) ist die Quelle der Daten.</li>
-        <li><b>Auf deinem Gerät</b> (im Browser-Speicher): dein Benutzername, das gewählte Design und – nur wenn du
-          „Auf diesem Gerät angemeldet bleiben“ wählst – dein Untis-Passwort.</li>
-        <li>Es gibt <b>keine Cookies, kein Tracking, keine Werbung und keine Statistik</b>. Schriften liegen direkt bei der App,
-          es werden keine Dienste von Google oder anderen eingebunden.</li>
-        <li>Wer den Zugang über ein GitHub-Issue einreicht, ist dort mit seinem GitHub-Konto sichtbar.</li>
+        <li><b>Cloudflare, Inc.</b> (USA) – betreibt den Vermittler; verarbeitet die Anfragen im Auftrag des Betreibers.</li>
+        <li><b>GitHub, Inc.</b> (USA, Tochter von Microsoft) – liefert die App-Dateien aus. Dabei sieht GitHub technisch deine IP-Adresse.</li>
+        <li><b>Untis GmbH</b> (Österreich) – betreibt WebUntis, die Quelle der Daten.</li>
+        <li>Cloudflare und GitHub sind nach dem EU-US Data Privacy Framework zertifiziert.</li>
+        <li>Es gibt <b>keine Cookies, kein Tracking, keine Werbung und keine Statistik</b>. Schriften liegen direkt bei der App.</li>
       </ul>
 
-      <h2>6. Wofür und auf welcher Grundlage?</h2>
-      <p>Ausschließlich, um dir deine Daten anzuzeigen. Grundlage ist deine <b>Einwilligung</b>
-        (Art. 6 Abs. 1 lit. a DSGVO, für Gesundheitsdaten Art. 9 Abs. 2 lit. a DSGVO).
-        Du kannst sie jederzeit widerrufen, indem du deinen Zugang löschst.</p>
+      <h2>6. Auf deinem Gerät</h2>
+      <p>Im Browser-Speicher liegen: das Anmelde-Token, die zuletzt gewählte Schule, dein Benutzername und das gewählte Design.
+        Beim Abmelden wird das Token gelöscht.</p>
 
-      <h2>7. Wie lange?</h2>
-      <p>Bis du deinen Zugang löschst. Deine Untis-Daten werden alle 30 Minuten neu erzeugt und die alten dabei überschrieben.
-        Nach dem Löschen wird nichts mehr abgeholt und deine Datei entfernt. In der Versionsgeschichte des Repositories
-        bleibt nur dein <b>verschlüsselter</b> Anmeldecode zurück, der ohne den geheimen Schlüssel nicht lesbar ist.
-        Die Protokolle der Automatik enthalten keine Namen oder Inhalte.</p>
+      <h2>7. Wofür und auf welcher Grundlage?</h2>
+      <p>Ausschließlich, um dir deine Daten anzuzeigen, weil du das mit der Anmeldung möchtest
+        (Art. 6 Abs. 1 lit. a und b DSGVO, für Gesundheitsdaten Art. 9 Abs. 2 lit. a DSGVO).</p>
 
       <h2>8. Mindestalter</h2>
       <p>Du musst mindestens <b>14 Jahre</b> alt sein (§ 4 Abs. 4 DSG). Wenn du jünger bist, brauchst du die Zustimmung deiner Eltern.</p>
 
       <h2>9. Deine Rechte</h2>
-      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit,
-        Widerspruch und Widerruf deiner Einwilligung. Schreib dafür an die E-Mail oben.
+      <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit
+        und Widerspruch. Da nichts gespeichert wird, genügt zum Löschen das Abmelden. Fragen an die E-Mail oben.
         Außerdem kannst du dich bei der österreichischen <a href="https://www.dsb.gv.at" target="_blank" rel="noopener">Datenschutzbehörde</a> beschweren.</p>
-
-      <h2>10. Zugang löschen</h2>
-      <p>In der App unter <b>„Zugang löschen“</b> (Seitenleiste bzw. „Mehr“) – oder per E-Mail an den Betreiber.</p>
     </article>
 
     <article class="card legal-card" id="offenlegung">

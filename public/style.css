@@ -249,17 +249,7 @@ h1, h2, h3, .display { font-family: var(--display); letter-spacing: -0.025em; }
 .hint { font-size: 12px; color: var(--muted); text-align: center; }
 .check { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--text); }
-.login-card a.btn { text-align: center; text-decoration: none; padding: 13px; }
-.code-box {
-  font: 500 11px/1.5 var(--mono);
-  padding: 12px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  background: var(--glass);
-  color: var(--muted);
-  resize: none;
-  word-break: break-all;
-}
+
 
 /* ---------- App-Rahmen ---------- */
 
@@ -1163,7 +1153,7 @@ dialog[open] { animation: dlg-in 0.5s cubic-bezier(.34, 1.4, .5, 1); }
 }
 
 /* =========================================================
-   Rechtliches, Einwilligung, Zugang löschen
+   Rechtliches
    ========================================================= */
 
 .consent { align-items: flex-start; font-size: 12.5px; font-weight: 500; line-height: 1.45; color: var(--muted); }
@@ -1174,12 +1164,6 @@ dialog[open] { animation: dlg-in 0.5s cubic-bezier(.34, 1.4, .5, 1); }
 .sheet-legal { justify-content: center; margin-top: 16px; }
 .sb-legal a, .sheet-legal a { color: var(--muted); text-decoration: none; }
 .sb-legal a:hover, .sheet-legal a:hover { color: var(--text); }
-.link-btn { font: inherit; background: none; border: 0; padding: 0; color: var(--danger); cursor: pointer; }
-.link-btn:hover { text-decoration: underline; }
-
-.dlg-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 4px; }
-.dlg-actions .btn { flex: 1; text-align: center; text-decoration: none; }
-dialog .code-box { width: 100%; margin-top: 12px; }
 
 .legal { max-width: 760px; margin: 0 auto; padding: calc(28px + env(safe-area-inset-top)) 16px 48px; display: flex; flex-direction: column; gap: 18px; }
 .legal .back { align-self: flex-start; text-decoration: none; }
@@ -1192,13 +1176,3 @@ dialog .code-box { width: 100%; margin-top: 12px; }
 .legal-card a { color: var(--text); font-weight: 700; }
 .missing { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); padding: 0 6px; border-radius: 6px; font-weight: 700; }
 @media (max-width: 600px) { .legal-card { padding: 22px 18px; } }
-.results li.manual { border-top: 1px solid var(--line); margin-top: 4px; color: var(--muted); }
-
-/* Erste Anmeldung */
-.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
-.waiting { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 14px; font-weight: 600; padding: 4px 0; }
-.waiting .spinner { width: 20px; height: 20px; flex: none; }
-#setup-step1, #setup-step2 { display: flex; flex-direction: column; gap: 14px; }
-#setup-step1[hidden], #setup-step2[hidden] { display: none; }
-.no-github summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--muted); }
-.no-github[open] { display: flex; flex-direction: column; gap: 10px; }

@@ -53,42 +53,9 @@
       <label class="check" id="remember-row" hidden><input id="remember" type="checkbox"> Auf diesem Gerät angemeldet bleiben</label>
       <p id="login-error" class="error" hidden></p>
       <button id="login-btn" class="btn primary" type="submit">Anmelden</button>
-      <p class="hint"><span id="login-hint">Deine Daten werden direkt an WebUntis weitergeleitet und nicht gespeichert.</span><br>Inoffiziell – nicht mit Untis verbunden. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
+      <p class="hint"><span id="login-hint">Deine Daten werden direkt an WebUntis weitergeleitet und nirgends gespeichert.</span><br>Inoffiziell – nicht mit Untis verbunden. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
     </form>
 
-    <!-- GitHub-Version: erste Anmeldung einmalig einrichten -->
-    <section id="setup-panel" class="card login-card" hidden>
-      <div class="wordmark big">stundenplan<span>.</span></div>
-      <h1>Erste Anmeldung.</h1>
-      <p class="muted">Dein Zugang wird jetzt <b>einmalig</b> eingerichtet. Danach meldest du dich immer direkt mit deinem Untis-Konto an.</p>
-
-      <div id="setup-step1">
-        <label class="check consent"><input id="setup-consent" type="checkbox">
-          <span>Ich bin mindestens 14 Jahre alt (oder meine Eltern sind einverstanden), habe die
-          <a href="rechtliches.html#datenschutz" target="_blank">Datenschutzerklärung</a> gelesen und willige ein,
-          dass meine Untis-Daten wie dort beschrieben verarbeitet werden. Widerruf jederzeit durch „Zugang löschen“.</span></label>
-        <p id="setup-error" class="error" hidden></p>
-        <button id="setup-start" class="btn primary" type="button">Zugang einrichten</button>
-      </div>
-
-      <div id="setup-step2" hidden>
-        <ol class="steps">
-          <li>Tippe auf <b>„Bei GitHub bestätigen“</b> und dort auf <b>„Create“</b> bzw. <b>„Submit new issue“</b>.</li>
-          <li>Komm hierher zurück. Die Seite meldet dich <b>automatisch</b> an, sobald alles bereit ist – meist nach 2–5 Minuten.</li>
-        </ol>
-        <a id="setup-issue" class="btn primary" target="_blank" rel="noopener">Bei GitHub bestätigen</a>
-        <div class="waiting"><div class="spinner"></div><span id="setup-status">Warte auf die Einrichtung …</span></div>
-        <p id="setup-hint" class="hint" hidden>Dauert es länger? Schau im GitHub-Issue nach – dort steht, falls etwas nicht geklappt hat.</p>
-        <details class="no-github">
-          <summary>Kein GitHub-Konto?</summary>
-          <p class="muted">Kopiere den Code und schick ihn dem Betreiber dieser Seite. Er reicht ihn für dich ein – lass diese Seite einfach offen.</p>
-          <textarea id="setup-code" class="code-box" readonly rows="3"></textarea>
-          <button id="setup-copy" class="btn" type="button">Code kopieren</button>
-        </details>
-      </div>
-
-      <button id="setup-cancel" class="btn ghost" type="button">Zurück</button>
-    </section>
   </main>
 
   <!-- App -->
@@ -107,7 +74,6 @@
           <button class="btn ghost" id="logout-btn">Abmelden</button>
         </div>
         <div class="sb-legal">
-          <button class="link-btn delete-account" type="button" hidden>Zugang löschen</button>
           <a href="rechtliches.html">Datenschutz & Offenlegung</a>
         </div>
       </div>
@@ -138,7 +104,6 @@
         <button class="btn" data-action="logout">Abmelden</button>
       </div>
       <div class="sheet-legal">
-        <button class="link-btn delete-account" type="button" hidden>Zugang löschen</button>
         <a href="rechtliches.html">Datenschutz & Offenlegung</a>
       </div>
     </section>
