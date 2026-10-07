@@ -288,7 +288,7 @@ const VIEWS = [
   { id: 'weitere', title: 'Weitere Stundenpläne', render: viewOther },
   { id: 'abwesenheiten', title: 'Abwesenheiten', render: viewAbsences },
   { id: 'hausaufgaben', title: 'Hausaufgaben', render: viewHomework },
-  { id: 'klassenbuch', title: 'Klassenbucheinträge', short: 'Klassenbuch', render: (el) => viewSection(el, 'classreg') },
+  { id: 'klassenbuch', title: 'Klassenbucheinträge', short: 'Klassenbuch', render: viewClassreg },
   { id: 'dienste', title: 'Dienste', render: (el) => viewSection(el, 'services') },
   { id: 'pruefungen', title: 'Prüfungen', render: viewExams },
   { id: 'noten', title: 'Noten', render: (el) => viewSection(el, 'grades') },
@@ -1167,7 +1167,56 @@ async function viewExams(el) {
       <div class="exam-list">${past.map((x) => card(x, false)).join('')}</div>` : ''}`;
 }
 
-// ---------- Bereiche ohne feste Struktur (Noten, Klassenbuch, Dienste, Sprechstunden) ----------
+// ---------- Ansicht: Klassenbucheinträge ----------
+
+function classregDate(e) {
+  const d = typeof e.date === 'number' ? fromUntis(e.date) : new Date(e.date);
+  return isNaN(d) ? null : d;
+}
+
+async function viewClassreg(el) {
+  let list;
+  try {
+    list = await load('classreg', '/api/classreg');
+  } catch (e) {
+    el.innerHTML = notice(e.status === 403 ? 'Klassenbucheinträge gibt deine Schule für die App nicht frei.' : 'Fehler: ' + e.message);
+    return;
+  }
+  if (!list.length) {
+    el.innerHTML = notice('Keine Klassenbucheinträge in diesem Schuljahr – sauber!', figureHtml('happy', 'big'));
+    return;
+  }
+  // Felder nicht erkannt (andere Untis-Version): alles so zeigen, wie es kommt
+  if (!list.some((e) => classregDate(e) || e.text)) {
+    el.innerHTML = genericHtml(list.map((e) => e.raw));
+    return;
+  }
+
+  const months = new Map();
+  for (const e of list) {
+    const d = classregDate(e);
+    const key = d ? d.toLocaleDateString('de', { month: 'long', year: 'numeric' }) : 'Ohne Datum';
+    if (!months.has(key)) months.set(key, []);
+    months.get(key).push({ ...e, d });
+  }
+  const time = (t) => (typeof t === 'number' ? fmtTime(t) : String(t || '').slice(0, 5));
+  el.innerHTML = [...months].map(([month, items]) => `
+    <section class="card panel classreg">
+      <h3>${esc(month)} <span class="count">${items.length}</span></h3>
+      <div class="mini-list">${items.map((e) => `
+        <div class="mini" style="--h:${hue(e.subject || e.category)}">
+          <span class="mini-date"><b>${e.d ? `${e.d.getDate()}.${e.d.getMonth() + 1}.` : '–'}</b><small>${e.d ? DAY_NAMES[e.d.getDay()] : ''}</small></span>
+          <span class="mini-main">
+            <b>${esc(e.category || e.subject || 'Eintrag')}${e.category && e.subject ? ` <span class="tag">${esc(e.subject)}</span>` : ''}</b>
+            ${e.text ? `<span class="cr-text">${esc(htmlToText(e.text))}</span>` : ''}
+            <small>${esc([e.teacher, time(e.time)].filter(Boolean).join(' · '))}</small>
+          </span>
+        </div>`).join('')}
+      </div>
+    </section>`).join('');
+}
+
+// ---------- Bereiche ohne feste Struktur (Noten, Dienste, Sprechstunden) ----------
 
 const label = (k) => k.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/^./, (c) => c.toUpperCase());
 

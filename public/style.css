@@ -1176,3 +1176,7 @@ dialog[open] { animation: dlg-in 0.5s cubic-bezier(.34, 1.4, .5, 1); }
 .legal-card a { color: var(--text); font-weight: 700; }
 .missing { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); padding: 0 6px; border-radius: 6px; font-weight: 700; }
 @media (max-width: 600px) { .legal-card { padding: 22px 18px; } }
+
+/* Klassenbucheinträge */
+.classreg { margin-bottom: 14px; }
+.cr-text { white-space: pre-wrap; font-size: 14px; }
