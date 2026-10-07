@@ -10,5 +10,5 @@ window.SITE = {
   legalGuardian: '',                             // optional, falls du unter 18 bist: Name eines Elternteils
 
   // Adresse des Cloudflare Workers (Online-Version). Leer lassen für die lokale Version mit „npm start“.
-  apiBase: '',
+  apiBase: 'https://stundenplan-api.untis-app.workers.dev',
 };
