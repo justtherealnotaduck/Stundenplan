@@ -1,0 +1,4 @@
+node_modules/
+public/data.enc.json
+*.log
+.env

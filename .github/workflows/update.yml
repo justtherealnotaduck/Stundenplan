@@ -1,0 +1,64 @@
+name: Stundenplan aktualisieren
+
+on:
+  # Alle 30 Minuten zwischen ca. 5 und 22 Uhr (GitHub rechnet in UTC)
+  schedule:
+    - cron: '*/30 3-20 * * *'
+  # Per Knopfdruck unter „Actions“ starten
+  workflow_dispatch:
+  # Nach jeder Code-Änderung neu veröffentlichen
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: Europe/Vienna
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Daten von WebUntis holen und verschlüsseln
+        env:
+          UNTIS_SCHOOL: ${{ secrets.UNTIS_SCHOOL }}
+          UNTIS_USER: ${{ secrets.UNTIS_USER }}
+          UNTIS_PASSWORD: ${{ secrets.UNTIS_PASSWORD }}
+          APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
+        run: node scripts/fetch-data.js public/data.enc.json
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      # GitHub pausiert Zeitpläne in Repositories, die 60 Tage nicht verändert wurden.
+      # Nach 50 Tagen ohne Commit legt dieser Schritt einen leeren Commit an.
+      - name: Zeitplan aktiv halten
+        run: |
+          last=$(git log -1 --format=%ct)
+          if [ $(( $(date +%s) - last )) -gt $(( 50 * 86400 )) ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "Zeitplan aktiv halten"
+            git push
+          fi

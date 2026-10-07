@@ -1,0 +1,14 @@
+{
+  "name": "untis-app",
+  "version": "1.0.0",
+  "description": "Eigene Stundenplan-Ansicht für WebUntis (inoffiziell)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "fetch": "node scripts/fetch-data.js"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  }
+}
