@@ -2,7 +2,7 @@ name: Zu Cloudflare veröffentlichen
 
 # Veröffentlicht nach jeder Änderung automatisch:
 #  - die App (public/) auf Cloudflare Pages → https://mein-stundenplan.pages.dev
-#  - den API-Worker (worker/, lib/) → https://stundenplan-api.untis-app.workers.dev
+#  - den API-Worker (worker/, lib/) → https://stundenplan-api.mein-stundenplan.workers.dev
 # Braucht das Secret CLOUDFLARE_API_TOKEN. Ohne Secret wird der Lauf übersprungen.
 on:
   push:
