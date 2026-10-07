@@ -70,7 +70,7 @@ function htmlToText(html) {
 }
 
 async function api(path, options = {}) {
-  if (state.encrypted) return staticApi(path);
+  if (state.static) return staticApi(path);
   const res = await fetch(path, {
     ...options,
     headers: { 'Content-Type': 'application/json' },
@@ -122,10 +122,14 @@ function showLogin() {
   $('#app-view').hidden = true;
   $('#login-view').hidden = false;
   state.cache.clear();
-  if (state.encrypted) {
+  if (state.static) {
     $('#login-form').hidden = true;
+    $('#register-form').hidden = true;
+    $('#register-done').hidden = true;
     $('#unlock-form').hidden = false;
-    $('#unlock-password').focus();
+    const last = store('lastUser');
+    if (last && !$('#unlock-user').value) $('#unlock-user').value = last;
+    ($('#unlock-user').value ? $('#unlock-password') : $('#unlock-user')).focus();
     return;
   }
   const last = store('school');
@@ -1391,7 +1395,7 @@ document.addEventListener('keydown', (e) => {
 addEventListener('scroll', () => ($('#bubble').hidden = true), { passive: true, capture: true });
 
 // ---------- GitHub-Version (ohne Server) ----------
-// GitHub Actions legt verschlüsselte Daten als data.enc.json neben die App.
+// GitHub Actions legt für jeden Nutzer verschlüsselte Daten als data/<id>.enc.json neben die App.
 // Der Browser entschlüsselt sie mit dem App-Passwort; alle /api-Aufrufe werden dann daraus beantwortet.
 
 const b64 = (str) => Uint8Array.from(atob(str), (c) => c.charCodeAt(0));
@@ -1415,7 +1419,7 @@ function staticApi(path) {
   if (p === '/api/logout') {
     store('unlock', null);
     state.data = null;
-    state.password = null;
+    state.creds = null;
     return Promise.resolve({ ok: true });
   }
   if (!d) return Promise.reject(staticError(401, 'Gesperrt'));
@@ -1459,10 +1463,31 @@ function staticApi(path) {
   }
 }
 
-async function unlock(password, remember) {
-  state.data = await decryptBundle(state.encrypted, password);
-  state.password = password;
-  store('unlock', remember ? password : null);
+const toB64 = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf)));
+
+// Gleiche Ableitung wie lib/secure.js userId(): Dateiname verrät den Benutzernamen nicht
+async function userId(username) {
+  const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(username.trim().toLowerCase()));
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 20);
+}
+
+async function fetchUserData(user) {
+  const res = await fetch(`data/${await userId(user)}.enc.json?t=${Date.now()}`, { cache: 'no-store' });
+  return res.ok ? res.json() : null;
+}
+
+async function unlock(user, password, remember) {
+  const enc = await fetchUserData(user);
+  if (!enc) throw staticError(404, 'Für diesen Benutzernamen gibt es noch keinen Zugang. Nach dem Anlegen dauert es ein paar Minuten.');
+  try {
+    state.data = await decryptBundle(enc, password);
+  } catch {
+    throw staticError(401, 'Falsches App-Passwort.');
+  }
+  state.encrypted = enc;
+  state.creds = { user, password };
+  store('lastUser', user);
+  store('unlock', remember ? { user, password } : null);
   state.cache.clear();
   $('#unlock-form').hidden = true;
   await showApp();
@@ -1475,10 +1500,10 @@ $('#unlock-form').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Entschlüsseln…';
   try {
-    await unlock($('#unlock-password').value, $('#unlock-remember').checked);
+    await unlock($('#unlock-user').value.trim(), $('#unlock-password').value, $('#unlock-remember').checked);
     $('#unlock-password').value = '';
-  } catch {
-    err.textContent = 'Falsches Passwort.';
+  } catch (ex) {
+    err.textContent = ex.status ? ex.message : 'Die Daten konnten nicht geladen werden. Bitte später noch einmal versuchen.';
     err.hidden = false;
   } finally {
     btn.disabled = false;
@@ -1486,44 +1511,125 @@ $('#unlock-form').addEventListener('submit', async (e) => {
   }
 });
 
-async function fetchEncrypted() {
-  const res = await fetch('data.enc.json?t=' + Date.now(), { cache: 'no-store' });
-  return res.ok ? res.json() : null;
-}
-
 // Wenn die App wieder in den Vordergrund kommt: neuere Daten holen (GitHub aktualisiert alle 30 Minuten)
 document.addEventListener('visibilitychange', async () => {
-  if (document.hidden || !state.data || !state.password) return;
-  const enc = await fetchEncrypted().catch(() => null);
+  if (document.hidden || !state.data || !state.creds) return;
+  const enc = await fetchUserData(state.creds.user).catch(() => null);
   if (!enc || enc.data === state.encrypted.data) return;
   try {
+    state.data = await decryptBundle(enc, state.creds.password);
     state.encrypted = enc;
-    state.data = await decryptBundle(enc, state.password);
     state.cache.clear();
     showApp();
-  } catch { /* Passwort wurde geändert: beim nächsten Öffnen neu eingeben */ }
+  } catch { /* App-Passwort wurde geändert: beim nächsten Öffnen neu eingeben */ }
+});
+
+// ---------- Zugang anlegen (GitHub-Version) ----------
+// Die Anmeldedaten werden im Browser mit dem öffentlichen Schlüssel der Seite verschlüsselt.
+// Lesen kann sie nur die GitHub-Automatik dieses Repositories – nicht der Besitzer, nicht andere Besucher.
+
+async function makeRegistrationCode(payload) {
+  const { spki } = await (await fetch('register-key.json', { cache: 'no-store' })).json();
+  const pub = await crypto.subtle.importKey('spki', b64(spki), { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']);
+  const aes = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const d = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aes, new TextEncoder().encode(JSON.stringify(payload)));
+  const k = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, pub, await crypto.subtle.exportKey('raw', aes));
+  const json = JSON.stringify({ k: toB64(k), iv: toB64(iv), d: toB64(d) });
+  const base64url = btoa(String.fromCharCode(...new TextEncoder().encode(json)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return 'SP1.' + base64url;
+}
+
+// Auf GitHub Pages (name.github.io/repo/) lässt sich das Repository aus der Adresse ablesen
+function repoFromLocation() {
+  const owner = /^([^.]+)\.github\.io$/i.exec(location.hostname)?.[1];
+  const repo = location.pathname.split('/').filter(Boolean)[0];
+  return owner && repo ? `${owner}/${repo}` : null;
+}
+
+function showRegister() {
+  $('#unlock-form').hidden = true;
+  $('#register-done').hidden = true;
+  $('#register-form').hidden = false;
+  $('#reg-school').focus();
+}
+
+$('#to-register').addEventListener('click', showRegister);
+$$('.to-unlock').forEach((b) => b.addEventListener('click', showLogin));
+
+$('#register-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const err = $('#register-error');
+  err.hidden = true;
+  const v = (id) => $(id).value;
+  if (v('#reg-app').length < 10) {
+    err.textContent = 'Das App-Passwort braucht mindestens 10 Zeichen.';
+    err.hidden = false;
+    return;
+  }
+  if (v('#reg-app') !== v('#reg-app2')) {
+    err.textContent = 'Die beiden App-Passwörter stimmen nicht überein.';
+    err.hidden = false;
+    return;
+  }
+  if (v('#reg-app') === v('#reg-password')) {
+    err.textContent = 'Bitte nimm als App-Passwort nicht dein Untis-Passwort.';
+    err.hidden = false;
+    return;
+  }
+  try {
+    const code = await makeRegistrationCode({
+      school: v('#reg-school').trim(),
+      user: v('#reg-user').trim(),
+      password: v('#reg-password'),
+      appPassword: v('#reg-app'),
+      created: new Date().toISOString(),
+    });
+    store('lastUser', v('#reg-user').trim());
+    $('#register-form').reset();
+    $('#reg-code').value = code;
+    const repo = repoFromLocation();
+    const body = 'Bitte nichts ändern – der Code ist verschlüsselt und nur für die automatische Anmeldung lesbar.\n\n' + code;
+    $('#reg-issue').hidden = !repo;
+    if (repo) $('#reg-issue').href = `https://github.com/${repo}/issues/new?title=${encodeURIComponent('Anmeldung')}&body=${encodeURIComponent(body)}`;
+    $('#register-form').hidden = true;
+    $('#register-done').hidden = false;
+  } catch {
+    err.textContent = 'Der Code konnte nicht erstellt werden. Bitte die Seite neu laden und noch einmal versuchen.';
+    err.hidden = false;
+  }
+});
+
+$('#reg-copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('#reg-code').value);
+    $('#reg-copy').textContent = 'Kopiert ✓';
+  } catch {
+    $('#reg-code').select();
+    $('#reg-copy').textContent = 'Markiert – jetzt kopieren';
+  }
+  setTimeout(() => ($('#reg-copy').textContent = 'Code kopieren'), 2500);
 });
 
 // ---------- Start ----------
 
 (async function start() {
-  // Liegt eine verschlüsselte Datendatei neben der App, läuft die GitHub-Version.
-  const enc = await fetchEncrypted().catch(() => null);
-  if (enc?.data) {
-    state.encrypted = enc;
-    showLogin();
-    const saved = store('unlock');
-    if (saved) {
-      // Gemerktes Passwort: Sperrseite mit „Entschlüsseln…“ zeigen statt einer leeren Seite
-      const btn = $('#unlock-btn');
-      btn.disabled = true;
-      btn.textContent = 'Entschlüsseln…';
-      try { await unlock(saved, true); } catch { store('unlock', null); }
-      btn.disabled = false;
-      btn.textContent = 'Öffnen';
-    }
+  // Antwortet /api/me, läuft der lokale Server. Sonst (z. B. GitHub Pages) die GitHub-Version.
+  const res = await fetch('/api/me').catch(() => null);
+  if (res && (res.ok || res.status === 401)) {
+    return res.ok ? showApp() : showLogin();
   }
-  api('/api/me')
-    .then(() => showApp())
-    .catch(showLogin);
+  state.static = true;
+  showLogin();
+  const saved = store('unlock');
+  if (saved?.user) {
+    // Gemerkter Zugang: Sperrseite mit „Entschlüsseln…“ zeigen statt einer leeren Seite
+    const btn = $('#unlock-btn');
+    btn.disabled = true;
+    btn.textContent = 'Entschlüsseln…';
+    try { await unlock(saved.user, saved.password, true); } catch { store('unlock', null); }
+    btn.disabled = false;
+    btn.textContent = 'Öffnen';
+  }
 })();

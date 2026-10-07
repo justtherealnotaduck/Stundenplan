@@ -58,17 +58,63 @@
     <!-- GitHub-Version: Daten liegen verschlüsselt bei der App -->
     <form id="unlock-form" class="card login-card" hidden>
       <div class="wordmark big">stundenplan<span>.</span></div>
-      <h1>Entsperren.</h1>
-      <p class="muted">Gib dein App-Passwort ein. Deine Daten sind verschlüsselt und nur damit lesbar.</p>
+      <h1>Willkommen zurück.</h1>
+      <p class="muted">Deine Daten sind verschlüsselt und nur mit deinem App-Passwort lesbar.</p>
+      <label class="field">
+        <span>Untis-Benutzername</span>
+        <input id="unlock-user" name="username" type="text" autocomplete="username" autocapitalize="off" required>
+      </label>
       <label class="field">
         <span>App-Passwort</span>
-        <input id="unlock-password" type="password" autocomplete="current-password" required>
+        <input id="unlock-password" name="password" type="password" autocomplete="current-password" required>
       </label>
       <label class="check"><input id="unlock-remember" type="checkbox"> Auf diesem Gerät merken</label>
       <p id="unlock-error" class="error" hidden></p>
       <button id="unlock-btn" class="btn primary" type="submit">Öffnen</button>
+      <button id="to-register" class="btn ghost" type="button">Neu hier? Zugang anlegen</button>
       <p class="hint">Inoffiziell – nicht mit Untis verbunden.<br>Die Daten werden automatisch über GitHub aktualisiert.</p>
     </form>
+
+    <!-- GitHub-Version: Zugang anlegen -->
+    <form id="register-form" class="card login-card" hidden autocomplete="off">
+      <div class="wordmark big">stundenplan<span>.</span></div>
+      <h1>Zugang anlegen.</h1>
+      <p class="muted">Deine Untis-Daten werden hier in deinem Browser verschlüsselt. Lesen kann sie nur die Automatik dieser Seite – auch nicht der Betreiber.</p>
+      <label class="field">
+        <span>Schule</span>
+        <input id="reg-school" type="text" placeholder="Name wie in der WebUntis-Schulsuche" required>
+      </label>
+      <label class="field">
+        <span>Untis-Benutzername</span>
+        <input id="reg-user" type="text" autocapitalize="off" required>
+      </label>
+      <label class="field">
+        <span>Untis-Passwort</span>
+        <input id="reg-password" type="password" autocomplete="off" required>
+      </label>
+      <label class="field">
+        <span>Neues App-Passwort (mind. 10 Zeichen)</span>
+        <input id="reg-app" type="password" autocomplete="new-password" minlength="10" required>
+      </label>
+      <label class="field">
+        <span>App-Passwort wiederholen</span>
+        <input id="reg-app2" type="password" autocomplete="new-password" minlength="10" required>
+      </label>
+      <p id="register-error" class="error" hidden></p>
+      <button class="btn primary" type="submit">Verschlüsselten Code erstellen</button>
+      <button class="btn ghost to-unlock" type="button">Zurück zum Login</button>
+    </form>
+
+    <section id="register-done" class="card login-card" hidden>
+      <div class="wordmark big">stundenplan<span>.</span></div>
+      <h1>Fast geschafft.</h1>
+      <p class="muted">Reiche deinen verschlüsselten Code ein. Nach der automatischen Prüfung (ein paar Minuten) kannst du dich mit deinem <b>Untis-Benutzernamen</b> und deinem <b>App-Passwort</b> anmelden.</p>
+      <textarea id="reg-code" class="code-box" readonly rows="4"></textarea>
+      <a id="reg-issue" class="btn primary" target="_blank" rel="noopener">Über GitHub einreichen</a>
+      <button id="reg-copy" class="btn" type="button">Code kopieren</button>
+      <p class="hint">Ohne GitHub-Konto: Code kopieren und dem Betreiber der Seite schicken.<br>Er kann damit nichts lesen – nur einreichen.</p>
+      <button class="btn ghost to-unlock" type="button">Zum Login</button>
+    </section>
   </main>
 
   <!-- App -->

@@ -1,46 +1,43 @@
 # stundenplan.
 
-Eine eigene, moderne Ansicht für deinen WebUntis-Stundenplan – mit Tests, Hausaufgaben, Mitteilungen,
-Abwesenheiten und mehr. Läuft komplett kostenlos über GitHub, ohne eigenen Server.
+Eine eigene, moderne Ansicht für den WebUntis-Stundenplan – mit Tests, Hausaufgaben, Mitteilungen,
+Abwesenheiten und mehr. Läuft komplett kostenlos über GitHub, ohne eigenen Server, für beliebig viele Nutzer.
 
 > **Inoffiziell** – dieses Projekt ist nicht mit Untis GmbH verbunden.
 
 ## So funktioniert's
 
-1. **GitHub Actions** meldet sich alle 30 Minuten (ca. 5–22 Uhr) mit deinem Untis-Konto an und holt deine Daten.
-2. Die Daten werden mit deinem **App-Passwort verschlüsselt** (AES-256-GCM).
-3. **GitHub Pages** veröffentlicht die App. Du öffnest sie, gibst dein App-Passwort ein,
-   und dein Browser entschlüsselt die Daten. Ohne das Passwort kann niemand etwas lesen.
+1. **Zugang anlegen:** Auf der Seite „Neu hier? Zugang anlegen“ wählen und Schule, Untis-Login und ein neues
+   App-Passwort eingeben. Der Browser verschlüsselt alles mit dem öffentlichen Schlüssel der Seite
+   (RSA-4096 + AES-256). Öffnen kann das **nur die GitHub-Automatik** dieses Repositories – auch der Betreiber nicht.
+2. **Einreichen:** Mit „Über GitHub einreichen“ entsteht ein Issue mit dem Code. Die Automatik prüft den Login,
+   nimmt den Zugang auf, entfernt den Code aus dem Issue und schließt es.
+   Ohne GitHub-Konto: Code kopieren und dem Betreiber schicken – er kann ihn nur einreichen, nicht lesen.
+3. **Aktualisieren:** Alle 30 Minuten (ca. 5–22 Uhr) holt **GitHub Actions** für jeden Nutzer die Daten und
+   verschlüsselt sie mit seinem App-Passwort.
+4. **Ansehen:** Mit Untis-Benutzername und App-Passwort anmelden – der Browser entschlüsselt nur die eigenen Daten.
 
-Deine Untis-Zugangsdaten liegen nur in den verschlüsselten GitHub-Secrets und sind nirgends sichtbar.
+## Einrichten für den Betreiber (einmalig)
 
-## Einrichten (ca. 5 Minuten)
-
-1. **Repository anlegen:** Dieses Repository forken (oben rechts „Fork“) oder den Code in ein eigenes,
-   **öffentliches** Repository hochladen.
-2. **Secrets eintragen:** *Settings → Secrets and variables → Actions → New repository secret*
-
-   | Name | Inhalt |
-   |---|---|
-   | `UNTIS_SCHOOL` | Name deiner Schule, so wie er in der WebUntis-Schulsuche erscheint |
-   | `UNTIS_USER` | dein WebUntis-Benutzername |
-   | `UNTIS_PASSWORD` | dein WebUntis-Passwort |
-   | `APP_PASSWORD` | ein **neues** Passwort für die App (mind. 10 Zeichen, nicht dein Untis-Passwort) |
-
-3. **Pages aktivieren:** *Settings → Pages → Source:* **GitHub Actions**
-4. **Starten:** *Actions → „Stundenplan aktualisieren“ → Run workflow*
-   (bei einem Fork vorher im Tab *Actions* die Workflows aktivieren).
-5. Nach ca. 2 Minuten ist die App unter `https://DEIN-NAME.github.io/REPOSITORY-NAME/` erreichbar.
+1. Schlüssel erzeugen (ist in diesem Repository schon passiert): `node scripts/keygen.js`
+2. Inhalt von `private-key.txt` als Secret **`REGISTER_PRIVATE_KEY`** eintragen:
+   *Settings → Secrets and variables → Actions → New repository secret*.
+   Danach `private-key.txt` an einem sicheren Ort aufbewahren oder löschen – **niemals hochladen**.
+3. *Settings → Pages → Source:* **GitHub Actions**
+4. *Actions → „Stundenplan aktualisieren“ → Run workflow*
+5. Die App ist unter `https://NAME.github.io/REPOSITORY/` erreichbar.
 
 **Am Handy:** Seite öffnen → „Teilen → Zum Home-Bildschirm“ (iPhone) bzw. „App installieren“ (Android).
 
 ## Gut zu wissen
 
-- Die Daten sind höchstens ca. 30 Minuten alt. Oben links steht, von wann sie sind.
+- Die Daten sind höchstens ca. 30 Minuten alt. In der Seitenleiste steht, von wann sie sind.
 - Gespeichert werden 2 Wochen zurück bis 5 Wochen voraus, für andere Klassen diese und nächste Woche.
-- Ist ein Lauf fehlgeschlagen, steht unter *Actions* der Grund (z. B. falsches Passwort).
-  Die Protokolle enthalten absichtlich keine persönlichen Daten.
-- Wähle ein **starkes App-Passwort** – die verschlüsselte Datei ist öffentlich abrufbar.
+- **Passwort geändert?** Einfach einen neuen Zugang mit demselben Benutzernamen anlegen – er ersetzt den alten.
+- **Zugang löschen:** Die Datei des Nutzers im Ordner `users/` löschen.
+- Geht der geheime Schlüssel verloren, muss jeder seinen Zugang neu anlegen.
+- Die Protokolle unter *Actions* enthalten absichtlich keine Namen oder Inhalte – sie sind öffentlich.
+- Ein **starkes App-Passwort** wählen: Die verschlüsselten Dateien sind öffentlich abrufbar.
 
 ## Lokale Version (mit Live-Login)
 

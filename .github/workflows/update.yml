@@ -36,11 +36,13 @@ jobs:
 
       - name: Daten von WebUntis holen und verschlüsseln
         env:
+          REGISTER_PRIVATE_KEY: ${{ secrets.REGISTER_PRIVATE_KEY }}
+          # optional: eigenes Konto direkt über Secrets statt über die Anmeldung in der App
           UNTIS_SCHOOL: ${{ secrets.UNTIS_SCHOOL }}
           UNTIS_USER: ${{ secrets.UNTIS_USER }}
           UNTIS_PASSWORD: ${{ secrets.UNTIS_PASSWORD }}
           APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
-        run: node scripts/fetch-data.js public/data.enc.json
+        run: node scripts/fetch-data.js public/data
 
       - uses: actions/configure-pages@v5
 

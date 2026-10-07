@@ -249,6 +249,17 @@ h1, h2, h3, .display { font-family: var(--display); letter-spacing: -0.025em; }
 .hint { font-size: 12px; color: var(--muted); text-align: center; }
 .check { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; cursor: pointer; }
 .check input { width: 18px; height: 18px; accent-color: var(--text); }
+.login-card a.btn { text-align: center; text-decoration: none; padding: 13px; }
+.code-box {
+  font: 500 11px/1.5 var(--mono);
+  padding: 12px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--glass);
+  color: var(--muted);
+  resize: none;
+  word-break: break-all;
+}
 
 /* ---------- App-Rahmen ---------- */
 

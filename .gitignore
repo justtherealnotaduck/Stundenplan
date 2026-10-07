@@ -1,4 +1,5 @@
 node_modules/
-public/data.enc.json
+public/data/
 *.log
 .env
+private-key.txt
