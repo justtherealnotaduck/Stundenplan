@@ -1,0 +1,53 @@
+name: Zu Cloudflare veröffentlichen
+
+# Veröffentlicht nach jeder Änderung automatisch:
+#  - die App (public/) auf Cloudflare Pages → https://mein-stundenplan.pages.dev
+#  - den API-Worker (worker/, lib/) → https://stundenplan-api.untis-app.workers.dev
+# Braucht das Secret CLOUDFLARE_API_TOKEN. Ohne Secret wird der Lauf übersprungen.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare
+  cancel-in-progress: true
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: 5643762ace3a4ec59664bfa322d2bacf
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Secret vorhanden?
+        id: check
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "Kein CLOUDFLARE_API_TOKEN hinterlegt – überspringe."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          node-version: 22
+
+      - name: API-Worker veröffentlichen
+        if: steps.check.outputs.skip != 'true'
+        run: npx --yes wrangler@4 deploy
+
+      # Aus einem eigenen Ordner, damit wrangler nicht die Worker-Einstellungen (wrangler.toml) liest
+      - name: App auf Cloudflare Pages veröffentlichen
+        if: steps.check.outputs.skip != 'true'
+        run: |
+          cp -r public "$RUNNER_TEMP/site"
+          cd "$RUNNER_TEMP/site"
+          npx --yes wrangler@3 pages deploy . --project-name mein-stundenplan --branch main --commit-dirty=true

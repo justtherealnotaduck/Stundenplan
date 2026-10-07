@@ -9,7 +9,7 @@ Abwesenheiten und mehr. Anmelden direkt mit dem Untis-Konto, kostenlos, ohne eig
 
 | Teil | Wo | Aufgabe |
 |---|---|---|
-| `public/` | GitHub Pages | die App (HTML, CSS, JS) |
+| `public/` | Cloudflare Pages (mein-stundenplan.pages.dev) und GitHub Pages | die App (HTML, CSS, JS) |
 | `worker/` | Cloudflare Workers (kostenlos) | reicht Anfragen an WebUntis weiter – der Browser darf das wegen CORS nicht selbst |
 | `lib/` | beide | Zugriff auf WebUntis und die API-Routen, gemeinsam für Worker und lokalen Server |
 | `server.js` | dein PC | lokale Version (`npm start`) |
@@ -27,7 +27,10 @@ das nur der Worker öffnen kann.
 4. Worker veröffentlichen: `npx wrangler deploy` – die angezeigte Adresse (`https://….workers.dev`)
    in `public/config.js` bei `apiBase` eintragen.
 5. In `wrangler.toml` bei `ALLOWED_ORIGINS` die Adresse der GitHub-Pages-Seite eintragen.
-6. Auf GitHub: *Settings → Pages → Source:* **GitHub Actions**. Jede Änderung wird automatisch veröffentlicht.
+6. Auf GitHub: *Settings → Pages → Source:* **GitHub Actions**.
+7. Für automatisches Veröffentlichen zu Cloudflare: API-Token mit den Rechten *Cloudflare Pages: Edit* und
+   *Workers Scripts: Edit* erstellen und als GitHub-Secret **`CLOUDFLARE_API_TOKEN`** eintragen.
+   Danach wird jede Änderung automatisch zu GitHub Pages **und** Cloudflare veröffentlicht.
 
 **Am Handy:** Seite öffnen → „Teilen → Zum Home-Bildschirm“ (iPhone) bzw. „App installieren“ (Android).
 

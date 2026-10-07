@@ -6,4 +6,4 @@ compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # Von welchen Seiten aus die API benutzt werden darf (kommagetrennt)
-ALLOWED_ORIGINS = "https://justtherealnotaduck.github.io"
+ALLOWED_ORIGINS = "https://mein-stundenplan.pages.dev,https://justtherealnotaduck.github.io"

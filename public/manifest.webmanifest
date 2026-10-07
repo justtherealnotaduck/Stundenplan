@@ -1,7 +1,7 @@
 {
   "name": "Mein Stundenplan",
   "short_name": "Stundenplan",
-  "start_url": "/#heute",
+  "start_url": "./#heute",
   "display": "standalone",
   "background_color": "#07080a",
   "theme_color": "#07080a",
