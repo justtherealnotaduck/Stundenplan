@@ -119,24 +119,21 @@ $('#theme-btn').addEventListener('click', () => {
 // ---------- Login ----------
 
 function showLogin() {
+  stopSetupPolling();
   $('#app-view').hidden = true;
   $('#login-view').hidden = false;
+  $('#setup-panel').hidden = true;
+  $('#login-form').hidden = false;
   state.cache.clear();
   if (state.static) {
-    $('#login-form').hidden = true;
-    $('#register-form').hidden = true;
-    $('#register-done').hidden = true;
-    $('#unlock-form').hidden = false;
-    const last = store('lastUser');
-    if (last && !$('#unlock-user').value) $('#unlock-user').value = last;
-    ($('#unlock-user').value ? $('#unlock-password') : $('#unlock-user')).focus();
-    return;
+    const user = store('lastUser');
+    if (user && !$('#user-input').value) $('#user-input').value = user;
   }
   const last = store('school');
   if (last) {
     state.school = last;
     $('#school-input').value = last.name;
-    $('#user-input').focus();
+    ($('#user-input').value ? $('#password-input') : $('#user-input')).focus();
   } else {
     $('#school-input').focus();
   }
@@ -148,8 +145,8 @@ $('#school-input').addEventListener('input', (e) => {
   state.school = null;
   clearTimeout(searchTimer);
   const q = e.target.value.trim();
-  if (q.length < 3) return ($('#school-results').hidden = true);
-  searchTimer = setTimeout(() => searchSchools(q), 300);
+  if (q.length < (state.static ? 2 : 3)) return ($('#school-results').hidden = true);
+  searchTimer = setTimeout(() => searchSchools(q), state.static ? 60 : 300);
 });
 
 $('#school-input').addEventListener('keydown', (e) => {
@@ -174,14 +171,15 @@ document.addEventListener('click', (e) => {
 async function searchSchools(q) {
   const list = $('#school-results');
   try {
-    const r = await api('/api/schools?q=' + encodeURIComponent(q));
+    // GitHub-Version: Vorschläge aus der Schulliste, sonst live über den lokalen Server
+    const r = state.static ? await localSchools(q) : await api('/api/schools?q=' + encodeURIComponent(q));
     if (r.tooMany) {
       searchResults = [];
       list.innerHTML = '<li class="empty">Zu viele Treffer, bitte genauer suchen.</li>';
     } else {
       searchResults = r;
       list.innerHTML = r.length
-        ? r.map((s, i) => `<li data-i="${i}">${esc(s.name)}<small>${esc(s.address)}</small></li>`).join('')
+        ? r.map((s, i) => `<li data-i="${i}"${s.manual ? ' class="manual"' : ''}>${esc(s.manual ? `„${s.name}“` : s.name)}<small>${esc(s.address)}</small></li>`).join('')
         : '<li class="empty">Keine Schule gefunden.</li>';
     }
   } catch {
@@ -217,6 +215,10 @@ $('#login-form').addEventListener('submit', async (e) => {
   btn.disabled = true;
   btn.textContent = 'Anmelden…';
   try {
+    if (state.static) {
+      await staticLogin(state.school, $('#user-input').value.trim(), $('#password-input').value, $('#remember').checked);
+      return;
+    }
     await api('/api/login', {
       method: 'POST',
       body: {
@@ -231,7 +233,13 @@ $('#login-form').addEventListener('submit', async (e) => {
     $('#password-input').value = '';
     await showApp();
   } catch (ex) {
-    err.textContent = ex.message;
+    err.textContent = ex.status || !state.static ? ex.message : 'Die Daten konnten nicht geladen werden. Bitte später noch einmal versuchen.';
+    if (ex.setup) {
+      // Untis-Passwort geändert? Dann den Zugang mit dem neuen Passwort neu einrichten
+      err.insertAdjacentHTML('beforeend', ' <button class="link-btn" type="button" id="resetup">Zugang neu einrichten</button>');
+      $('#resetup').addEventListener('click', () =>
+        showSetup(state.school, $('#user-input').value.trim(), $('#password-input').value, $('#remember').checked));
+    }
     err.hidden = false;
   } finally {
     btn.disabled = false;
@@ -1420,6 +1428,7 @@ function staticApi(path) {
     store('unlock', null);
     state.data = null;
     state.creds = null;
+    state.pending = null;
     return Promise.resolve({ ok: true });
   }
   if (!d) return Promise.reject(staticError(401, 'Gesperrt'));
@@ -1476,40 +1485,35 @@ async function fetchUserData(user) {
   return res.ok ? res.json() : null;
 }
 
-async function unlock(user, password, remember) {
+// Anmelden in der GitHub-Version: Die Daten sind mit dem Untis-Passwort verschlüsselt.
+// Gibt es noch keine Daten, wird der Zugang einmalig eingerichtet.
+async function staticLogin(school, user, password, remember) {
   const enc = await fetchUserData(user);
-  if (!enc) throw staticError(404, 'Für diesen Benutzernamen gibt es noch keinen Zugang. Nach dem Anlegen dauert es ein paar Minuten.');
+  if (!enc) return showSetup(school, user, password, remember);
+  let data;
   try {
-    state.data = await decryptBundle(enc, password);
+    data = await decryptBundle(enc, password);
   } catch {
-    throw staticError(401, 'Falsches App-Passwort.');
+    throw Object.assign(new Error('Das Passwort passt nicht. Hast du dein Untis-Passwort geändert?'), { status: 401, setup: true });
   }
-  state.encrypted = enc;
-  state.creds = { user, password };
-  store('lastUser', user);
-  store('unlock', remember ? { user, password } : null);
-  state.cache.clear();
-  $('#unlock-form').hidden = true;
-  await showApp();
+  await finishLogin({ school, user, password, remember }, enc, data);
 }
 
-$('#unlock-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const err = $('#unlock-error'), btn = $('#unlock-btn');
-  err.hidden = true;
-  btn.disabled = true;
-  btn.textContent = 'Entschlüsseln…';
-  try {
-    await unlock($('#unlock-user').value.trim(), $('#unlock-password').value, $('#unlock-remember').checked);
-    $('#unlock-password').value = '';
-  } catch (ex) {
-    err.textContent = ex.status ? ex.message : 'Die Daten konnten nicht geladen werden. Bitte später noch einmal versuchen.';
-    err.hidden = false;
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Öffnen';
+async function finishLogin(p, enc, data) {
+  state.data = data;
+  state.encrypted = enc;
+  state.creds = { user: p.user, password: p.password };
+  state.pending = null;
+  if (p.school) {
+    const { name, address, school, server, manual } = p.school;
+    store('school', { name, address, school, server, manual });
   }
-});
+  store('lastUser', p.user);
+  store('unlock', p.remember ? { user: p.user, password: p.password } : null);
+  $('#password-input').value = '';
+  state.cache.clear();
+  await showApp();
+}
 
 // Wenn die App wieder in den Vordergrund kommt: neuere Daten holen (GitHub aktualisiert alle 30 Minuten)
 document.addEventListener('visibilitychange', async () => {
@@ -1521,12 +1525,12 @@ document.addEventListener('visibilitychange', async () => {
     state.encrypted = enc;
     state.cache.clear();
     showApp();
-  } catch { /* App-Passwort wurde geändert: beim nächsten Öffnen neu eingeben */ }
+  } catch { /* Passwort wurde geändert: beim nächsten Öffnen neu anmelden */ }
 });
 
-// ---------- Zugang anlegen (GitHub-Version) ----------
-// Die Anmeldedaten werden im Browser mit dem öffentlichen Schlüssel der Seite verschlüsselt.
-// Lesen kann sie nur die GitHub-Automatik dieses Repositories – nicht der Besitzer, nicht andere Besucher.
+// ---------- Verschlüsselte Codes für die Automatik ----------
+// Die Zugangsdaten werden im Browser mit dem öffentlichen Schlüssel der Seite verschlüsselt.
+// Öffnen kann sie nur die GitHub-Automatik dieses Repositories.
 
 async function makeRegistrationCode(payload) {
   const { spki } = await (await fetch('register-key.json', { cache: 'no-store' })).json();
@@ -1556,87 +1560,135 @@ function issueUrl(title, code) {
   return repo ? `https://github.com/${repo}/issues/new?title=${encodeURIComponent(title)}&body=${encodeURIComponent(body)}` : null;
 }
 
-function showRegister() {
-  $('#unlock-form').hidden = true;
-  $('#register-done').hidden = true;
-  $('#register-form').hidden = false;
-  $('#reg-school').focus();
+// ---------- Schulvorschläge (GitHub-Version) ----------
+// Die Untis-Schulsuche ist aus dem Browser gesperrt (CORS). GitHub Actions legt deshalb eine
+// Schulliste (schools.json) zur App; daraus werden beim Tippen Schulen vorgeschlagen.
+
+const norm = (t) => String(t).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/ß/g, 'ss');
+let schoolListPromise = null;
+
+function loadSchoolList() {
+  schoolListPromise ||= fetch('schools.json')
+    .then((r) => (r.ok ? r.json() : { schools: [] }))
+    .then((d) => d.schools.map(([name, address, school, server]) => ({ name, address, school, server, key: norm(name + ' ' + address) })))
+    .catch(() => []);
+  return schoolListPromise;
 }
 
-$('#to-register').addEventListener('click', showRegister);
-$$('.to-unlock').forEach((b) => b.addEventListener('click', showLogin));
+async function localSchools(q) {
+  const all = await loadSchoolList();
+  const tokens = norm(q).split(/\s+/).filter(Boolean);
+  const first = norm(q);
+  const hits = all
+    .filter((s) => tokens.every((t) => s.key.includes(t)))
+    .sort((a, b) => (norm(b.name).startsWith(first) - norm(a.name).startsWith(first)) || a.name.localeCompare(b.name, 'de'))
+    .slice(0, 8);
+  // Letzter Eintrag: Eingabe übernehmen, falls die Schule nicht in der Liste ist (z. B. außerhalb Österreichs)
+  hits.push({ name: q, address: 'Nicht in der Liste – so verwenden (Name genau wie in WebUntis)', manual: true });
+  return hits;
+}
 
-$('#register-form').addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const err = $('#register-error');
+// ---------- Erste Anmeldung: Zugang einmalig einrichten ----------
+
+let setupTimer = null;
+
+function stopSetupPolling() {
+  clearInterval(setupTimer);
+  setupTimer = null;
+}
+
+function showSetup(school, user, password, remember) {
+  state.pending = { school, user, password, remember };
+  $('#login-form').hidden = true;
+  $('#setup-panel').hidden = false;
+  $('#setup-step1').hidden = false;
+  $('#setup-step2').hidden = true;
+  $('#setup-error').hidden = true;
+  $('#setup-hint').hidden = true;
+  $('#setup-consent').checked = false;
+}
+
+$('#setup-start').addEventListener('click', async () => {
+  const p = state.pending, err = $('#setup-error');
   err.hidden = true;
-  const v = (id) => $(id).value;
-  if (v('#reg-app').length < 10) {
-    err.textContent = 'Das App-Passwort braucht mindestens 10 Zeichen.';
-    err.hidden = false;
-    return;
-  }
-  if (v('#reg-app') !== v('#reg-app2')) {
-    err.textContent = 'Die beiden App-Passwörter stimmen nicht überein.';
-    err.hidden = false;
-    return;
-  }
-  if (v('#reg-app') === v('#reg-password')) {
-    err.textContent = 'Bitte nimm als App-Passwort nicht dein Untis-Passwort.';
+  if (!$('#setup-consent').checked) {
+    err.textContent = 'Bitte bestätige Alter und Datenschutzerklärung.';
     err.hidden = false;
     return;
   }
   try {
-    if (!$('#reg-consent').checked) {
-      err.textContent = 'Bitte bestätige Alter und Datenschutzerklärung.';
-      err.hidden = false;
-      return;
-    }
     const code = await makeRegistrationCode({
       action: 'register',
-      school: v('#reg-school').trim(),
-      user: v('#reg-user').trim(),
-      password: v('#reg-password'),
-      appPassword: v('#reg-app'),
+      school: p.school.name,
+      schoolLogin: p.school.manual ? undefined : p.school.school,
+      server: p.school.manual ? undefined : p.school.server,
+      user: p.user,
+      password: p.password,
+      appPassword: p.password, // die Daten werden mit dem Untis-Passwort verschlüsselt
       consent: { version: CONSENT_VERSION, at: new Date().toISOString() },
       created: new Date().toISOString(),
     });
-    store('lastUser', v('#reg-user').trim());
-    $('#register-form').reset();
-    $('#reg-code').value = code;
+    $('#setup-code').value = code;
     const url = issueUrl('Anmeldung', code);
-    $('#reg-issue').hidden = !url;
-    if (url) $('#reg-issue').href = url;
-    $('#register-form').hidden = true;
-    $('#register-done').hidden = false;
+    $('#setup-issue').hidden = !url;
+    if (url) $('#setup-issue').href = url;
+    $('#setup-step1').hidden = true;
+    $('#setup-step2').hidden = false;
+    startSetupPolling();
   } catch {
-    err.textContent = 'Der Code konnte nicht erstellt werden. Bitte die Seite neu laden und noch einmal versuchen.';
+    err.textContent = 'Das hat nicht geklappt. Bitte die Seite neu laden und noch einmal versuchen.';
     err.hidden = false;
   }
 });
 
-$('#reg-copy').addEventListener('click', async () => {
+// Alle 15 Sekunden schauen, ob die Automatik die Daten schon bereitgestellt hat – dann automatisch anmelden
+function startSetupPolling() {
+  stopSetupPolling();
+  const started = Date.now();
+  const tick = async () => {
+    const p = state.pending;
+    if (!p) return stopSetupPolling();
+    const min = Math.floor((Date.now() - started) / 60000);
+    $('#setup-status').textContent = min < 1 ? 'Warte auf die Einrichtung …' : `Warte auf die Einrichtung … (${min} Min.)`;
+    if (min >= 8) $('#setup-hint').hidden = false;
+    const enc = await fetchUserData(p.user).catch(() => null);
+    if (!enc) return;
+    let data;
+    try { data = await decryptBundle(enc, p.password); } catch { return; } // noch alte Daten mit altem Passwort
+    stopSetupPolling();
+    await finishLogin(p, enc, data);
+  };
+  setupTimer = setInterval(tick, 15000);
+  tick();
+}
+
+$('#setup-cancel').addEventListener('click', () => {
+  state.pending = null;
+  showLogin();
+});
+
+$('#setup-copy').addEventListener('click', async () => {
   try {
-    await navigator.clipboard.writeText($('#reg-code').value);
-    $('#reg-copy').textContent = 'Kopiert ✓';
+    await navigator.clipboard.writeText($('#setup-code').value);
+    $('#setup-copy').textContent = 'Kopiert ✓';
   } catch {
-    $('#reg-code').select();
-    $('#reg-copy').textContent = 'Markiert – jetzt kopieren';
+    $('#setup-code').select();
+    $('#setup-copy').textContent = 'Markiert – jetzt kopieren';
   }
-  setTimeout(() => ($('#reg-copy').textContent = 'Code kopieren'), 2500);
+  setTimeout(() => ($('#setup-copy').textContent = 'Code kopieren'), 2500);
 });
 
 // ---------- Zugang löschen (GitHub-Version) ----------
-// Erzeugt einen verschlüsselten Löschauftrag. Die Automatik prüft das App-Passwort und entfernt den Zugang.
+// Erzeugt einen verschlüsselten Löschauftrag. Die Automatik prüft das Passwort und entfernt den Zugang.
 
 $$('.delete-account').forEach((b) => b.addEventListener('click', () => {
   closeSheet();
   $('#details-body').innerHTML = `
     <h2>Zugang löschen?</h2>
     <p class="muted">Danach holt die Automatik keine Daten mehr für dich ab und deine Datei wird entfernt.
-      Das kannst du jederzeit durch neues Anlegen rückgängig machen.</p>
+      Wenn du dich später wieder anmeldest, wird der Zugang einfach neu eingerichtet.</p>
     <p id="del-error" class="error" hidden></p>
-    <div class="dlg-actions"><button class="btn primary" id="del-make" type="button">Ja, Löschauftrag erstellen</button></div>`;
+    <div class="dlg-actions"><button class="btn primary" id="del-make" type="button">Ja, Zugang löschen</button></div>`;
   $('#details').showModal();
   $('#del-make').addEventListener('click', async () => {
     try {
@@ -1649,11 +1701,11 @@ $$('.delete-account').forEach((b) => b.addEventListener('click', () => {
       const url = issueUrl('Löschen', code);
       $('#details-body').innerHTML = `
         <h2>Fast gelöscht.</h2>
-        <p class="muted">Reiche den Löschauftrag ein. Nach ein paar Minuten ist dein Zugang entfernt.
+        <p class="muted">Bestätige das Löschen bei GitHub. Nach ein paar Minuten ist dein Zugang entfernt.
           Ohne GitHub-Konto: Code kopieren und dem Betreiber schicken.</p>
         <textarea class="code-box" readonly rows="4">${esc(code)}</textarea>
         <div class="dlg-actions">
-          ${url ? `<a class="btn primary" href="${esc(url)}" target="_blank" rel="noopener">Über GitHub einreichen</a>` : ''}
+          ${url ? `<a class="btn primary" href="${esc(url)}" target="_blank" rel="noopener">Bei GitHub bestätigen</a>` : ''}
           <button class="btn" id="del-copy" type="button">Code kopieren</button>
         </div>`;
       $('#del-copy').addEventListener('click', () => navigator.clipboard?.writeText(code).then(() => ($('#del-copy').textContent = 'Kopiert ✓')));
@@ -1675,15 +1727,23 @@ $$('.delete-account').forEach((b) => b.addEventListener('click', () => {
   }
   state.static = true;
   $$('.delete-account').forEach((b) => (b.hidden = false));
+  $('#remember-row').hidden = false;
+  $('#login-hint').textContent = 'Deine Daten werden verschlüsselt und nur mit deinem Untis-Passwort lesbar gespeichert.';
+  loadSchoolList();
   showLogin();
   const saved = store('unlock');
   if (saved?.user) {
-    // Gemerkter Zugang: Sperrseite mit „Entschlüsseln…“ zeigen statt einer leeren Seite
-    const btn = $('#unlock-btn');
+    // Gemerkte Anmeldung: Login-Fenster mit „Anmelden…“ zeigen statt einer leeren Seite
+    const btn = $('#login-btn');
     btn.disabled = true;
-    btn.textContent = 'Entschlüsseln…';
-    try { await unlock(saved.user, saved.password, true); } catch { store('unlock', null); }
+    btn.textContent = 'Anmelden…';
+    try {
+      const enc = await fetchUserData(saved.user);
+      await finishLogin({ ...saved, school: store('school'), remember: true }, enc, await decryptBundle(enc, saved.password));
+    } catch {
+      store('unlock', null);
+    }
     btn.disabled = false;
-    btn.textContent = 'Öffnen';
+    btn.textContent = 'Anmelden';
   }
 })();

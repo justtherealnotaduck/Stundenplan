@@ -50,74 +50,44 @@
         <input id="password-input" name="password" type="password" autocomplete="current-password" required>
       </label>
 
+      <label class="check" id="remember-row" hidden><input id="remember" type="checkbox"> Auf diesem Gerät angemeldet bleiben</label>
       <p id="login-error" class="error" hidden></p>
       <button id="login-btn" class="btn primary" type="submit">Anmelden</button>
-      <p class="hint">Deine Daten werden direkt an WebUntis weitergeleitet und nicht gespeichert.<br>Inoffiziell – nicht mit Untis verbunden. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
+      <p class="hint"><span id="login-hint">Deine Daten werden direkt an WebUntis weitergeleitet und nicht gespeichert.</span><br>Inoffiziell – nicht mit Untis verbunden. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
     </form>
 
-    <!-- GitHub-Version: Daten liegen verschlüsselt bei der App -->
-    <form id="unlock-form" class="card login-card" hidden>
+    <!-- GitHub-Version: erste Anmeldung einmalig einrichten -->
+    <section id="setup-panel" class="card login-card" hidden>
       <div class="wordmark big">stundenplan<span>.</span></div>
-      <h1>Willkommen zurück.</h1>
-      <p class="muted">Deine Daten sind verschlüsselt und nur mit deinem App-Passwort lesbar.</p>
-      <label class="field">
-        <span>Untis-Benutzername</span>
-        <input id="unlock-user" name="username" type="text" autocomplete="username" autocapitalize="off" required>
-      </label>
-      <label class="field">
-        <span>App-Passwort</span>
-        <input id="unlock-password" name="password" type="password" autocomplete="current-password" required>
-      </label>
-      <label class="check"><input id="unlock-remember" type="checkbox"> Auf diesem Gerät merken</label>
-      <p id="unlock-error" class="error" hidden></p>
-      <button id="unlock-btn" class="btn primary" type="submit">Öffnen</button>
-      <button id="to-register" class="btn ghost" type="button">Neu hier? Zugang anlegen</button>
-      <p class="hint">Inoffiziell – nicht mit Untis verbunden.<br>Die Daten werden automatisch über GitHub aktualisiert. · <a href="rechtliches.html">Datenschutz & Offenlegung</a></p>
-    </form>
+      <h1>Erste Anmeldung.</h1>
+      <p class="muted">Dein Zugang wird jetzt <b>einmalig</b> eingerichtet. Danach meldest du dich immer direkt mit deinem Untis-Konto an.</p>
 
-    <!-- GitHub-Version: Zugang anlegen -->
-    <form id="register-form" class="card login-card" hidden autocomplete="off">
-      <div class="wordmark big">stundenplan<span>.</span></div>
-      <h1>Zugang anlegen.</h1>
-      <p class="muted">Deine Zugangsdaten werden schon hier in deinem Browser verschlüsselt. Öffnen kann sie nur die Automatik dieser Seite – lege einen Zugang aber nur an, wenn du dem Betreiber vertraust.</p>
-      <label class="field">
-        <span>Schule</span>
-        <input id="reg-school" type="text" placeholder="Name wie in der WebUntis-Schulsuche" required>
-      </label>
-      <label class="field">
-        <span>Untis-Benutzername</span>
-        <input id="reg-user" type="text" autocapitalize="off" required>
-      </label>
-      <label class="field">
-        <span>Untis-Passwort</span>
-        <input id="reg-password" type="password" autocomplete="off" required>
-      </label>
-      <label class="field">
-        <span>Neues App-Passwort (mind. 10 Zeichen)</span>
-        <input id="reg-app" type="password" autocomplete="new-password" minlength="10" required>
-      </label>
-      <label class="field">
-        <span>App-Passwort wiederholen</span>
-        <input id="reg-app2" type="password" autocomplete="new-password" minlength="10" required>
-      </label>
-      <label class="check consent"><input id="reg-consent" type="checkbox" required>
-        <span>Ich bin mindestens 14 Jahre alt (oder meine Eltern sind einverstanden), habe die
-        <a href="rechtliches.html#datenschutz" target="_blank">Datenschutzerklärung</a> gelesen und willige ein,
-        dass meine Untis-Daten wie dort beschrieben verarbeitet werden. Widerruf jederzeit durch „Zugang löschen“.</span></label>
-      <p id="register-error" class="error" hidden></p>
-      <button class="btn primary" type="submit">Verschlüsselten Code erstellen</button>
-      <button class="btn ghost to-unlock" type="button">Zurück zum Login</button>
-    </form>
+      <div id="setup-step1">
+        <label class="check consent"><input id="setup-consent" type="checkbox">
+          <span>Ich bin mindestens 14 Jahre alt (oder meine Eltern sind einverstanden), habe die
+          <a href="rechtliches.html#datenschutz" target="_blank">Datenschutzerklärung</a> gelesen und willige ein,
+          dass meine Untis-Daten wie dort beschrieben verarbeitet werden. Widerruf jederzeit durch „Zugang löschen“.</span></label>
+        <p id="setup-error" class="error" hidden></p>
+        <button id="setup-start" class="btn primary" type="button">Zugang einrichten</button>
+      </div>
 
-    <section id="register-done" class="card login-card" hidden>
-      <div class="wordmark big">stundenplan<span>.</span></div>
-      <h1>Fast geschafft.</h1>
-      <p class="muted">Reiche deinen verschlüsselten Code ein. Nach der automatischen Prüfung (ein paar Minuten) kannst du dich mit deinem <b>Untis-Benutzernamen</b> und deinem <b>App-Passwort</b> anmelden.</p>
-      <textarea id="reg-code" class="code-box" readonly rows="4"></textarea>
-      <a id="reg-issue" class="btn primary" target="_blank" rel="noopener">Über GitHub einreichen</a>
-      <button id="reg-copy" class="btn" type="button">Code kopieren</button>
-      <p class="hint">Ohne GitHub-Konto: Code kopieren und dem Betreiber der Seite schicken – er reicht ihn für dich ein.</p>
-      <button class="btn ghost to-unlock" type="button">Zum Login</button>
+      <div id="setup-step2" hidden>
+        <ol class="steps">
+          <li>Tippe auf <b>„Bei GitHub bestätigen“</b> und dort auf <b>„Create“</b> bzw. <b>„Submit new issue“</b>.</li>
+          <li>Komm hierher zurück. Die Seite meldet dich <b>automatisch</b> an, sobald alles bereit ist – meist nach 2–5 Minuten.</li>
+        </ol>
+        <a id="setup-issue" class="btn primary" target="_blank" rel="noopener">Bei GitHub bestätigen</a>
+        <div class="waiting"><div class="spinner"></div><span id="setup-status">Warte auf die Einrichtung …</span></div>
+        <p id="setup-hint" class="hint" hidden>Dauert es länger? Schau im GitHub-Issue nach – dort steht, falls etwas nicht geklappt hat.</p>
+        <details class="no-github">
+          <summary>Kein GitHub-Konto?</summary>
+          <p class="muted">Kopiere den Code und schick ihn dem Betreiber dieser Seite. Er reicht ihn für dich ein – lass diese Seite einfach offen.</p>
+          <textarea id="setup-code" class="code-box" readonly rows="3"></textarea>
+          <button id="setup-copy" class="btn" type="button">Code kopieren</button>
+        </details>
+      </div>
+
+      <button id="setup-cancel" class="btn ghost" type="button">Zurück</button>
     </section>
   </main>
 

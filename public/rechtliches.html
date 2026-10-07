@@ -31,11 +31,11 @@
         noch mit deiner Schule verbunden.</p>
 
       <h2>2. Was macht die App?</h2>
-      <p>Sie zeigt dir deine eigenen Daten aus WebUntis in einer eigenen Ansicht an – nur dir, nach Eingabe deines App-Passworts.</p>
+      <p>Sie zeigt dir deine eigenen Daten aus WebUntis in einer eigenen Ansicht an – nur dir, nach der Anmeldung mit deinem Untis-Konto.</p>
 
       <h2>3. Welche Daten werden verarbeitet?</h2>
       <ul>
-        <li><b>Beim Anlegen des Zugangs:</b> Schulname, Untis-Benutzername, Untis-Passwort und ein App-Passwort, das du selbst festlegst.</li>
+        <li><b>Bei der ersten Anmeldung:</b> Schule, Untis-Benutzername und Untis-Passwort.</li>
         <li><b>Aus WebUntis:</b> dein Name, Schule, Klasse, Stundenplan mit Vertretungen und Entfällen, Prüfungen und – falls
           deine Schule das freigibt – Noten, Hausaufgaben, Mitteilungen, Abwesenheiten, Klassenbucheinträge, Dienste und Sprechstunden.</li>
         <li><b>Besonders geschützte Daten:</b> Gründe von Abwesenheiten können Gesundheitsdaten sein (Art. 9 DSGVO).</li>
@@ -45,8 +45,9 @@
       <ul>
         <li>Deine Anmeldedaten werden <b>schon in deinem Browser verschlüsselt</b> (RSA-4096 und AES-256).
           Öffnen kann sie nur die Automatik dieser Seite (GitHub Actions) mit einem geheimen Schlüssel.</li>
-        <li>Deine Untis-Daten werden mit <b>deinem App-Passwort verschlüsselt</b> (AES-256-GCM).
-          Ohne dieses Passwort kann sie niemand lesen – auch der Betreiber nicht.</li>
+        <li>Deine Untis-Daten werden mit <b>deinem Untis-Passwort verschlüsselt</b> (AES-256-GCM, PBKDF2 mit 600.000 Runden).
+          Ohne dieses Passwort kann sie niemand lesen – auch der Betreiber nicht. Die verschlüsselten Dateien sind öffentlich
+          abrufbar; ein <b>starkes Untis-Passwort</b> schützt sie am besten.</li>
         <li><b>Ehrlicher Hinweis:</b> Der Betreiber verwaltet die Automatik. Er sieht deine Zugangsdaten nicht,
           könnte die Automatik technisch aber so verändern, dass er an sie herankommt. Lege deshalb nur dann einen
           Zugang an, wenn du dem Betreiber vertraust.</li>
@@ -60,7 +61,7 @@
           GitHub ist nach dem EU-US Data Privacy Framework zertifiziert.</li>
         <li><b>WebUntis</b> (Untis GmbH, Österreich) ist die Quelle der Daten.</li>
         <li><b>Auf deinem Gerät</b> (im Browser-Speicher): dein Benutzername, das gewählte Design und – nur wenn du
-          „Auf diesem Gerät merken“ wählst – dein App-Passwort.</li>
+          „Auf diesem Gerät angemeldet bleiben“ wählst – dein Untis-Passwort.</li>
         <li>Es gibt <b>keine Cookies, kein Tracking, keine Werbung und keine Statistik</b>. Schriften liegen direkt bei der App,
           es werden keine Dienste von Google oder anderen eingebunden.</li>
         <li>Wer den Zugang über ein GitHub-Issue einreicht, ist dort mit seinem GitHub-Konto sichtbar.</li>

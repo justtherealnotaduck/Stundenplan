@@ -34,8 +34,12 @@ jobs:
         with:
           node-version: 22
 
+      - id: pages
+        uses: actions/configure-pages@v5
+
       - name: Daten von WebUntis holen und verschlüsseln
         env:
+          PAGES_URL: ${{ steps.pages.outputs.base_url }}
           REGISTER_PRIVATE_KEY: ${{ secrets.REGISTER_PRIVATE_KEY }}
           # optional: eigenes Konto direkt über Secrets statt über die Anmeldung in der App
           UNTIS_SCHOOL: ${{ secrets.UNTIS_SCHOOL }}
@@ -43,8 +47,6 @@ jobs:
           UNTIS_PASSWORD: ${{ secrets.UNTIS_PASSWORD }}
           APP_PASSWORD: ${{ secrets.APP_PASSWORD }}
         run: node scripts/fetch-data.js public/data
-
-      - uses: actions/configure-pages@v5
 
       - uses: actions/upload-pages-artifact@v3
         with:

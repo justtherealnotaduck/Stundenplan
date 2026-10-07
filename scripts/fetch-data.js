@@ -49,6 +49,14 @@ async function findSchool(name) {
   return exact || r[0];
 }
 
+// Seit den Schulvorschlägen schickt die App die genaue Kennung mit – dann ist keine Suche nötig.
+async function resolveSchool(creds) {
+  if (creds.schoolLogin && /^[a-z0-9.-]+\.webuntis\.com$/i.test(creds.server || '')) {
+    return { name: creds.school, school: creds.schoolLogin, server: creds.server };
+  }
+  return findSchool(creds.school);
+}
+
 // Klassen-Stundenpläne sind für alle Schüler einer Schule gleich: nur einmal pro Lauf holen
 const classCache = new Map(); // "server|school" -> { classes, classWeeks }
 
@@ -70,7 +78,7 @@ async function classTimetables(s, monday) {
 
 // Holt alles für einen Nutzer und gibt das (unverschlüsselte) Datenpaket zurück.
 async function buildBundle(creds) {
-  const school = await findSchool(creds.school);
+  const school = await resolveSchool(creds);
   const s = {
     school: school.school,
     schoolName: school.name,
@@ -134,6 +142,20 @@ async function buildBundle(creds) {
   };
 }
 
+// Holt die zuletzt veröffentlichte Datei eines Nutzers von GitHub Pages (PAGES_URL kommt vom Workflow)
+async function keepPublished(outDir, id) {
+  const base = (process.env.PAGES_URL || '').replace(/\/$/, '');
+  if (!base) return false;
+  try {
+    const res = await fetch(`${base}/data/${id}.enc.json`);
+    if (!res.ok) return false;
+    fs.writeFileSync(path.join(outDir, `${id}.enc.json`), Buffer.from(await res.arrayBuffer()));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Alle Nutzer einsammeln: angemeldete Codes + optional die eigenen Secrets
 function loadUsers() {
   const users = [];
@@ -169,7 +191,6 @@ async function main() {
   for (const [i, creds] of users.entries()) {
     console.log(`Nutzer ${i + 1}:`);
     try {
-      if (creds.appPassword.length < 10) throw new Error('App-Passwort zu kurz (mind. 10 Zeichen).');
       const bundle = await buildBundle(creds);
       fs.writeFileSync(path.join(outDir, `${userId(creds.user)}.enc.json`), JSON.stringify(encryptBundle(bundle, creds.appPassword)));
       console.log(`    fertig: ${Object.keys(bundle.weeks).length} Wochen, ${bundle.exams?.length ?? 0} Prüfungen, ` +
@@ -177,13 +198,15 @@ async function main() {
       ok++;
     } catch (e) {
       console.log(`    Fehler: ${e.message}`);
+      // Bisherige Daten behalten, damit ein kurzer Ausfall niemanden aussperrt
+      if (await keepPublished(outDir, userId(creds.user))) console.log('    bisherige Daten bleiben erhalten');
     }
   }
   console.log(`${ok} von ${users.length} Nutzern aktualisiert.`);
   if (users.length && !ok) process.exitCode = 1; // alle fehlgeschlagen → Lauf rot markieren
 }
 
-module.exports = { buildBundle, findSchool };
+module.exports = { buildBundle, findSchool, resolveSchool };
 
 if (require.main === module) {
   // exitCode statt process.exit(): so werden offene Verbindungen sauber geschlossen

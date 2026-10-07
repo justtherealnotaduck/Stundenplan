@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const u = require('../lib/untis');
 const { userId, findCode, decryptRegistration } = require('../lib/secure');
-const { findSchool } = require('./fetch-data');
+const { resolveSchool } = require('./fetch-data');
 
 const USERS_DIR = path.join(__dirname, '..', 'users');
 
@@ -26,7 +26,7 @@ async function register(creds, code) {
 
   // Login testen, damit nur funktionierende Zugänge aufgenommen werden
   try {
-    const school = await findSchool(creds.school);
+    const school = await resolveSchool(creds);
     const s = { school: school.school, server: school.server, user: creds.user, password: creds.password };
     await u.authenticate(s);
     await u.rpc(u.apiUrl(s), 'logout', {}, u.untisCookie(s)).catch(() => {});

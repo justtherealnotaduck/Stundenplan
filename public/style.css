@@ -1192,3 +1192,13 @@ dialog .code-box { width: 100%; margin-top: 12px; }
 .legal-card a { color: var(--text); font-weight: 700; }
 .missing { background: color-mix(in srgb, var(--danger) 18%, transparent); color: var(--danger); padding: 0 6px; border-radius: 6px; font-weight: 700; }
 @media (max-width: 600px) { .legal-card { padding: 22px 18px; } }
+.results li.manual { border-top: 1px solid var(--line); margin-top: 4px; color: var(--muted); }
+
+/* Erste Anmeldung */
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.waiting { display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--muted); font-size: 14px; font-weight: 600; padding: 4px 0; }
+.waiting .spinner { width: 20px; height: 20px; flex: none; }
+#setup-step1, #setup-step2 { display: flex; flex-direction: column; gap: 14px; }
+#setup-step1[hidden], #setup-step2[hidden] { display: none; }
+.no-github summary { cursor: pointer; font-weight: 700; font-size: 14px; color: var(--muted); }
+.no-github[open] { display: flex; flex-direction: column; gap: 10px; }
