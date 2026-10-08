@@ -273,6 +273,7 @@ const ICONS = {
   weitere: 'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4M12 13v5M9.5 15.5h5',
   abwesenheiten: 'M12 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM5 21v-2a5 5 0 0 1 9-3M16 16l5 5M21 16l-5 5',
   hausaufgaben: 'M6 3h9l4 4v14H6zM9 9h7M9 13h7M9 17h4',
+  lernen: 'M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.3 1 2.1h5c0-.8.4-1.6 1-2.1A6 6 0 0 0 12 3z',
   klassenbuch: 'M5 4a1 1 0 0 1 1-1h13v15H6a1 1 0 0 0-1 1zM5 19a2 2 0 0 0 2 2h12v-3M9 7h6',
   dienste: 'M9 4h6v3H9zM7 5H5v16h14V5h-2M9 14l2 2 4-4',
   pruefungen: 'M4 20l4-1 11-11-3-3L5 16zM14 7l3 3',
@@ -288,6 +289,7 @@ const VIEWS = [
   { id: 'weitere', title: 'Weitere Stundenpläne', render: viewOther },
   { id: 'abwesenheiten', title: 'Abwesenheiten', render: viewAbsences },
   { id: 'hausaufgaben', title: 'Hausaufgaben', render: viewHomework },
+  { id: 'lernen', title: 'Lernen', render: (el) => viewLearn(el) },
   { id: 'klassenbuch', title: 'Klassenbucheinträge', short: 'Klassenbuch', render: viewClassreg },
   { id: 'dienste', title: 'Dienste', render: (el) => viewSection(el, 'services') },
   { id: 'pruefungen', title: 'Prüfungen', render: viewExams },
@@ -312,6 +314,7 @@ const TABS = [
   { id: 'stundenplan', label: 'Plan' },
   { id: 'pruefungen', label: 'Tests' },
   { id: 'hausaufgaben', label: 'Aufgaben' },
+  { id: 'lernen', label: 'Lernen' },
 ];
 const MORE_ICON = 'M5 12h.01M12 12h.01M19 12h.01';
 
@@ -618,7 +621,8 @@ function renderTimetable(wrap, data) {
   let html = '<div></div>';
   days.forEach((d, i) => {
     const today = untisDate(d) === todayKey ? ' today' : '';
-    html += `<div class="day-head${today}" style="--c:${i};grid-column:${i + 2};grid-row:1" title="${DAY_LONG[d.getDay()]}"><small>${DAY_NAMES[d.getDay()]}</small><b>${pad(d.getDate())}</b></div>`;
+    const hwCount = myHomework().filter((h) => h.due === untisDate(d) && !h.done).length;
+    html += `<button type="button" class="day-head${today}" data-dk="${untisDate(d)}" style="--c:${i};grid-column:${i + 2};grid-row:1" title="${DAY_LONG[d.getDay()]} – Hausübungen"><small>${DAY_NAMES[d.getDay()]}</small><b>${pad(d.getDate())}</b>${hwCount ? `<span class="hw-badge">${hwCount}</span>` : ''}</button>`;
   });
   units.forEach((u, r) => {
     html += `<div class="time-cell" style="grid-column:1;grid-row:${r + 2}"><b>${esc(u.name)}</b>${fmtTime(u.start)}<br>${fmtTime(u.end)}</div>`;
@@ -659,6 +663,8 @@ function renderTimetable(wrap, data) {
 
   tt.innerHTML = html;
   renderTabs(wrap, days, todayKey);
+  wrap._days = days;
+  updateDayHwButton(wrap);
 }
 
 // Rote Linie mit Uhrzeit an der aktuellen Stelle im heutigen Tag
@@ -684,6 +690,25 @@ function renderTabs(wrap, days, todayKey) {
     .join('');
 }
 
+// Handy: Knopf über dem Tagesplan für die Hausübungen des gewählten Tages
+function updateDayHwButton(wrap) {
+  const btn = $('.day-hw-btn', wrap), d = wrap._days?.[state.activeDay];
+  if (!btn || !d) return;
+  const dk = untisDate(d);
+  const count = myHomework().filter((h) => h.due === dk && !h.done).length;
+  btn.dataset.dk = dk;
+  btn.innerHTML = `📝 Hausübungen für ${DAY_NAMES[d.getDay()]}, ${d.getDate()}.${d.getMonth() + 1}.${count ? ` <span class="hw-badge">${count}</span>` : ''}`;
+  btn.hidden = false;
+}
+
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('.day-head[data-dk], .day-hw-btn');
+  if (!b) return;
+  const wrap = b.closest('.tt-wrap');
+  const dk = Number(b.dataset.dk);
+  openDayHomework(dk, subjectsOfDay(wrap?._data, dk));
+});
+
 function selectDay(wrap, i) {
   const anim = i > state.activeDay ? 'next' : i < state.activeDay ? 'prev' : 'fade';
   state.activeDay = i;
@@ -692,6 +717,7 @@ function selectDay(wrap, i) {
   wrap._animTimer = setTimeout(() => delete wrap.dataset.anim, 700);
   $$('.day-tabs button', wrap).forEach((x, j) => x.classList.toggle('active', j === i));
   $$('.timetable [data-day]', wrap).forEach((el) => el.classList.toggle('active-day', Number(el.dataset.day) === i));
+  updateDayHwButton(wrap);
 }
 
 document.addEventListener('click', (e) => {
@@ -798,7 +824,7 @@ async function loadWeekInto(wrap, element, anim = 'fade') {
   }
 }
 
-const ttShell = () => '<div class="tt-wrap"><div class="day-tabs"></div><div class="timetable"></div><div class="tt-status" hidden></div></div>';
+const ttShell = () => '<div class="tt-wrap"><div class="day-tabs"></div><button type="button" class="day-hw-btn" hidden></button><div class="timetable"></div><div class="tt-status" hidden></div></div>';
 
 // ---------- Ansicht: Mein Stundenplan ----------
 
@@ -924,7 +950,10 @@ async function viewToday(el) {
 
   const exams = d.exams || [];
   const soon = exams.filter((x) => x.date >= key);
-  const hw = (d.homework || []).filter((h) => !h.completed && h.dueDate >= key);
+  const hw = [
+    ...(d.homework || []).filter((h) => !h.completed && h.dueDate >= key),
+    ...openMyHomework(key).map((h) => ({ dueDate: h.due, subject: h.subject, text: h.text })),
+  ].sort((a, b) => a.dueDate - b.dueDate);
   const first = state.me.displayName !== state.me.user ? state.me.displayName : '';
 
   let nextHtml;
@@ -960,9 +989,8 @@ async function viewToday(el) {
 
       <section class="card panel">
         <h3>Hausaufgaben</h3>
-        ${d.homework === null ? '<p class="muted">Von deiner Schule nicht freigegeben.</p>'
-          : hw.length ? `<div class="mini-list">${hw.slice(0, 6).map(homeworkMini).join('')}</div>`
-          : '<p class="muted">Nichts offen. 👌</p>'}
+        ${hw.length ? `<div class="mini-list">${hw.slice(0, 6).map(homeworkMini).join('')}</div>`
+          : `<p class="muted">${d.homework === null ? 'Von Untis kommen keine – eigene kannst du im Stundenplan eintragen.' : 'Nichts offen. 👌'}</p>`}
         <a class="more" href="#hausaufgaben">Alle Hausaufgaben →</a>
       </section>
 
@@ -1110,28 +1138,40 @@ async function viewAbsences(el) {
 // ---------- Ansicht: Hausaufgaben ----------
 
 async function viewHomework(el) {
-  let list;
+  let list = [], untisError = null;
   try {
     list = await load('homework', '/api/homework');
   } catch (e) {
-    el.innerHTML = notice(e.status === 403 ? 'Hausaufgaben gibt deine Schule für die App nicht frei.' : 'Fehler: ' + e.message);
-    return;
+    untisError = e.status === 403 ? 'Hausaufgaben von Untis gibt deine Schule nicht frei – eigene kannst du trotzdem eintragen.' : 'Untis-Hausaufgaben konnten nicht geladen werden: ' + e.message;
   }
   const key = untisDate(new Date());
-  const open = list.filter((h) => !h.completed && h.dueDate >= key);
-  const late = list.filter((h) => !h.completed && h.dueDate < key);
-  const done = list.filter((h) => h.completed);
-  const card = (h) => `
+  $('#view-tools').innerHTML = '<button class="btn primary" type="button" id="hw-new">＋ Hausübung</button>';
+  $('#hw-new').addEventListener('click', () => openDayHomework(nextSchoolDay(), []));
+
+  const mine = myHomework();
+  const open = [...list.filter((h) => !h.completed && h.dueDate >= key), ...mine.filter((h) => !h.done && h.due >= key)];
+  const late = [...list.filter((h) => !h.completed && h.dueDate < key), ...mine.filter((h) => !h.done && h.due < key)];
+  const done = [...list.filter((h) => h.completed), ...mine.filter((h) => h.done)];
+  const due = (h) => h.dueDate ?? h.due;
+  const card = (h) => h.id && h.due !== undefined && h.created ? myHomeworkCard(h, key) : `
     <div class="card hw" style="--h:${hue(h.subject)}">
       <div class="hw-top"><b>${esc(h.subject)}</b><span class="tag ${h.completed ? 'ok' : h.dueDate < key ? 'cancelled' : ''}">fällig ${fmtDate(h.dueDate)} · ${relDay(h.dueDate)}</span></div>
       <p>${esc(h.text)}</p>
       ${h.remark ? `<p class="muted">${esc(h.remark)}</p>` : ''}
       <small class="muted">aufgegeben ${fmtDate(h.date)}${h.teacher ? ' · ' + esc(h.teacher) : ''}</small>
     </div>`;
-  const group = (title, items) => items.length ? `<h3 class="group">${title} <span class="count">${items.length}</span></h3><div class="hw-grid">${items.map(card).join('')}</div>` : '';
-  el.innerHTML = list.length
+  const group = (title, items) => items.length
+    ? `<h3 class="group">${title} <span class="count">${items.length}</span></h3><div class="hw-grid">${items.sort((x, y) => due(x) - due(y)).map(card).join('')}</div>` : '';
+  el.innerHTML = (untisError ? `<p class="muted hw-note">${esc(untisError)}</p>` : '') + (open.length + late.length + done.length
     ? group('Offen', open) + group('Überfällig', late) + group('Erledigt', done)
-    : notice('Keine Hausaufgaben eingetragen.', figureHtml('relax', 'big'));
+    : notice('Keine Hausaufgaben – tipp auf „＋ Hausübung“ oder im Stundenplan auf einen Tag, um selbst eine einzutragen.', figureHtml('relax', 'big')));
+}
+
+// Nächster Schultag (Wochenende überspringen) – Standard für neue Hausübungen
+function nextSchoolDay() {
+  let d = addDays(new Date(), 1);
+  while (d.getDay() === 0 || d.getDay() === 6) d = addDays(d, 1);
+  return untisDate(d);
 }
 
 // ---------- Ansicht: Prüfungen ----------
@@ -1287,7 +1327,10 @@ document.addEventListener('click', (e) => {
 
   $('#details-body').innerHTML = `
     <h2 style="--h:${hue(shortOf(p))}"><span class="dot"></span>${esc(subject)}</h2>
-    <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    <dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>
+    <button class="btn" type="button" id="lesson-hw">📝 Hausübung für dieses Fach eintragen</button>`;
+  const wrap = el.closest('.tt-wrap');
+  $('#lesson-hw').addEventListener('click', () => openDayHomework(p.date, subjectsOfDay(wrap?._data, p.date), subject));
   $('#details').showModal();
 });
 
@@ -1462,4 +1505,11 @@ if (API_BASE) $('#remember-row').hidden = false; // Online-Version: „angemelde
 
 api('/api/me')
   .then(() => showApp())
-  .catch(showLogin);
+  .catch((e) => {
+    showLogin();
+    // Kein Internet beim Öffnen: nicht so tun, als wäre man abgemeldet
+    if (!e.status && authToken()) {
+      $('#login-error').textContent = 'Keine Verbindung – prüf dein Internet und lade die Seite neu. Du bist weiterhin angemeldet.';
+      $('#login-error').hidden = false;
+    }
+  });

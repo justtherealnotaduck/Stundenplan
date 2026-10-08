@@ -99,6 +99,8 @@ const server = http.createServer(async (req, res) => {
       return send(res, 200, { ok: true }, { 'Set-Cookie': 'sid=; HttpOnly; Path=/; Max-Age=0' });
     }
 
+    if (url.pathname === '/api/tutor') return send(res, 501, { error: 'Die Lern-KI gibt es nur in der Online-Version.' });
+
     if (url.pathname.startsWith('/api/')) {
       const sess = getSession(req);
       if (!sess) return send(res, 401, { error: 'Nicht angemeldet' });

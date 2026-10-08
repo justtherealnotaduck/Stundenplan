@@ -40,6 +40,8 @@
           Prüfungen und – falls deine Schule das freigibt – Noten, Hausaufgaben, Mitteilungen, Abwesenheiten,
           Klassenbucheinträge, Dienste und Sprechstunden.</li>
         <li><b>Besonders geschützte Daten:</b> Gründe von Abwesenheiten können Gesundheitsdaten sein (Art. 9 DSGVO).</li>
+        <li><b>Lern-KI („Lerncoach“):</b> deine Fragen, der bisherige Gesprächsverlauf und – nur wenn du sie schickst – deine Skizze.</li>
+        <li><b>Nur auf deinem Gerät:</b> selbst eingetragene Hausübungen, deine Zeichnungen und der Chatverlauf mit dem Lerncoach.</li>
       </ul>
 
       <h2>4. Wie funktioniert das – und was wird gespeichert?</h2>
@@ -58,7 +60,9 @@
 
       <h2>5. Wer ist beteiligt?</h2>
       <ul>
-        <li><b>Cloudflare, Inc.</b> (USA) – betreibt den Vermittler; verarbeitet die Anfragen im Auftrag des Betreibers.</li>
+        <li><b>Cloudflare, Inc.</b> (USA) – betreibt den Vermittler und die Lern-KI (Cloudflare Workers AI mit einem Sprachmodell von Mistral);
+          verarbeitet die Anfragen im Auftrag des Betreibers. Laut Cloudflare werden Eingaben an Workers AI nicht zum Training von Modellen verwendet.
+          Gib dem Lerncoach trotzdem keine persönlichen Daten.</li>
         <li><b>GitHub, Inc.</b> (USA, Tochter von Microsoft) – liefert die App-Dateien aus. Dabei sieht GitHub technisch deine IP-Adresse.</li>
         <li><b>Untis GmbH</b> (Österreich) – betreibt WebUntis, die Quelle der Daten.</li>
         <li>Cloudflare und GitHub sind nach dem EU-US Data Privacy Framework zertifiziert.</li>
@@ -66,8 +70,9 @@
       </ul>
 
       <h2>6. Auf deinem Gerät</h2>
-      <p>Im Browser-Speicher liegen: das Anmelde-Token, die zuletzt gewählte Schule, dein Benutzername und das gewählte Design.
-        Beim Abmelden wird das Token gelöscht.</p>
+      <p>Im Browser-Speicher liegen: das Anmelde-Token, die zuletzt gewählte Schule, dein Benutzername, das gewählte Design,
+        deine selbst eingetragenen Hausübungen, deine Zeichnungen und der Chatverlauf mit dem Lerncoach. Beim Abmelden wird das Token gelöscht;
+        Hausübungen, Zeichnungen und Chat löschst du direkt in der App („Löschen“, Papierkorb bzw. „Neu“).</p>
 
       <h2>7. Wofür und auf welcher Grundlage?</h2>
       <p>Ausschließlich, um dir deine Daten anzuzeigen, weil du das mit der Anmeldung möchtest

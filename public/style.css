@@ -1006,7 +1006,7 @@ dialog[open] { animation: dlg-in 0.5s cubic-bezier(.34, 1.4, .5, 1); }
 /* Schwebende Tab-Leiste aus Glas */
 .mobile .tabbar {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   position: fixed;
   left: 12px;
   right: 12px;
@@ -1180,3 +1180,142 @@ dialog[open] { animation: dlg-in 0.5s cubic-bezier(.34, 1.4, .5, 1); }
 /* Klassenbucheinträge */
 .classreg { margin-bottom: 14px; }
 .cr-text { white-space: pre-wrap; font-size: 14px; }
+
+/* =========================================================
+   Eigene Hausübungen
+   ========================================================= */
+
+button.day-head { border: 0; font: inherit; color: inherit; background: transparent; cursor: pointer; position: relative; transition: background 0.2s; }
+button.day-head:hover { background: var(--line); }
+button.day-head.today:hover { background: var(--invert-bg); }
+.hw-badge {
+  display: inline-grid; place-items: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent); color: var(--accent-ink);
+  font: 800 10px/1 var(--font);
+}
+.day-head .hw-badge { position: absolute; top: 4px; right: 6px; }
+.day-hw-btn { display: none; }
+.mobile .day-hw-btn:not([hidden]) {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; margin: -4px 0 12px; padding: 10px 14px;
+  border-radius: 16px; border: 1px dashed var(--faint);
+  background: var(--glass); color: var(--text);
+  font: 700 13px var(--font); cursor: pointer;
+}
+
+.hw-day-list { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+.hw-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; border-radius: 14px; background: var(--glass); border: 1px solid var(--line); }
+.hw-item-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.hw-item-main span { white-space: pre-wrap; overflow-wrap: anywhere; }
+.hw-item.done .hw-item-main { opacity: 0.5; text-decoration: line-through; }
+.hw-check {
+  flex: none; width: 24px; height: 24px; margin-top: 1px;
+  border-radius: 8px; border: 2px solid var(--faint); background: transparent;
+  color: var(--accent-ink); font: 900 13px/1 var(--font); cursor: pointer;
+}
+.hw-check.static { cursor: default; opacity: 0.6; }
+.hw-item.done .hw-check { background: var(--accent); border-color: var(--accent); }
+.hw-del { flex: none; border: 0; background: none; color: var(--muted); font-size: 16px; cursor: pointer; padding: 2px 4px; }
+.hw-del:hover { color: var(--danger); }
+.hw-add { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.hw-add-row { display: flex; gap: 8px; }
+.hw-add select, .hw-add input, .hw-add textarea {
+  font: 500 14px var(--font); color: var(--text);
+  padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--glass);
+  min-width: 0; flex: 1;
+}
+.hw-add textarea { resize: vertical; }
+#lesson-hw { width: 100%; margin-bottom: 8px; }
+
+.hw.mine.done { opacity: 0.6; }
+.hw.mine.done p { text-decoration: line-through; }
+.hw-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hw-actions .tag { margin-left: auto; }
+.hw-note { margin: 0 0 16px; }
+
+/* =========================================================
+   Lernen: Sketchpad + Lerncoach
+   ========================================================= */
+
+.learn { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(320px, 1fr); gap: 16px; align-items: start; }
+.learn-switch { display: none; }
+
+.sketch-card { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+.sketch-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.tool-group { display: flex; align-items: center; gap: 4px; padding: 4px; border-radius: 999px; background: var(--line); }
+.tool-group button { border: 0; cursor: pointer; display: grid; place-items: center; transition: transform 0.3s cubic-bezier(.34, 1.56, .64, 1); }
+.tool-group button:active { transform: scale(0.88); }
+.ink { width: 26px; height: 26px; border-radius: 50%; background: var(--ink); box-shadow: inset 0 0 0 2px rgb(255 255 255 / 0.4); }
+.ink.active { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+.tool, .size { width: 32px; height: 32px; border-radius: 50%; background: transparent; color: var(--text); font-size: 16px; }
+.tool.active, .size.active { background: var(--invert-bg); color: var(--invert-text); }
+.size i { width: var(--s); height: var(--s); border-radius: 50%; background: currentColor; display: block; }
+.pages .page-no { font: 700 12px var(--mono); min-width: 44px; text-align: center; color: var(--muted); }
+.send-sketch { margin-left: auto; }
+
+.paper {
+  position: relative;
+  height: min(68vh, 640px);
+  border-radius: 16px;
+  overflow: hidden;
+  background-color: #fbfaf6;
+  background-image:
+    linear-gradient(rgb(40 60 120 / 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(40 60 120 / 0.09) 1px, transparent 1px);
+  background-size: 22px 22px;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.06);
+}
+.paper canvas { position: absolute; inset: 0; touch-action: none; cursor: crosshair; }
+
+.chat-card { display: flex; flex-direction: column; height: calc(min(68vh, 640px) + 66px); padding: 0; overflow: hidden; }
+.chat-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.chat-head div { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.chat-head b { font: 700 16px var(--display); }
+.chat-head small { color: var(--muted); font-size: 12px; }
+.coach-avatar { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--accent); font-size: 20px; }
+.chat-log { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.msg-bubble { max-width: 88%; padding: 10px 14px; border-radius: 18px; line-height: 1.5; font-size: 14.5px; overflow-wrap: anywhere; }
+.msg-bubble.coach { align-self: flex-start; background: var(--glass-strong); border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+.msg-bubble.me { align-self: flex-end; background: var(--invert-bg); color: var(--invert-text); border-bottom-right-radius: 6px; }
+.msg-bubble.me .tag { color: inherit; border-color: currentColor; margin: 0 4px 0 0; }
+.msg-bubble.error { align-self: center; color: var(--danger); border: 1px solid currentColor; font-size: 13px; }
+.msg-bubble.typing { display: flex; align-items: center; gap: 4px; color: var(--muted); font-size: 13px; }
+.msg-bubble.typing i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: dot 1s ease-in-out infinite; }
+.msg-bubble.typing i:nth-child(2) { animation-delay: 0.15s; }
+.msg-bubble.typing i:nth-child(3) { animation-delay: 0.3s; margin-right: 6px; }
+@keyframes dot { 0%, 100% { transform: translateY(0); opacity: 0.4; } 50% { transform: translateY(-4px); opacity: 1; } }
+.starters { display: flex; flex-wrap: wrap; gap: 6px; }
+.starters .chip { font: 600 12.5px var(--font); }
+.chat-attach { display: flex; align-items: center; gap: 10px; margin: 0 12px; padding: 6px 10px; border-radius: 12px; background: var(--line); font-size: 13px; font-weight: 600; }
+.chat-attach[hidden] { display: none; }
+.chat-attach img { width: 44px; height: 32px; object-fit: cover; border-radius: 6px; background: #fff; }
+.chat-attach button { margin-left: auto; border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; }
+.chat-form { display: flex; gap: 8px; padding: 12px; align-items: flex-end; }
+.chat-form textarea {
+  flex: 1; resize: none; font: 500 15px/1.4 var(--font); color: var(--text);
+  padding: 11px 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--glass); outline: none;
+}
+.chat-form textarea:focus { border-color: var(--text); }
+.chat-form .btn { width: 44px; height: 44px; padding: 0; flex: none; font-size: 17px; }
+.chat-note { margin: 0 16px 12px; font-size: 11px; color: var(--muted); text-align: center; }
+
+.toast {
+  position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom)); z-index: 50;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  padding: 10px 16px; border-radius: 14px; background: var(--invert-bg); color: var(--invert-text);
+  font: 700 14px var(--font); box-shadow: var(--shadow); transition: opacity 0.25s, transform 0.35s cubic-bezier(.34, 1.56, .64, 1);
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 1100px) {
+  .learn { grid-template-columns: minmax(0, 1fr); }
+  .learn-switch { display: inline-flex; justify-self: start; }
+  .learn[data-pane="sketch"] .chat-card, .learn[data-pane="chat"] .sketch-card { display: none; }
+}
+.mobile .paper { height: calc(100vh - 330px - env(safe-area-inset-bottom)); min-height: 320px; }
+.mobile .chat-card { height: calc(100vh - 250px - env(safe-area-inset-bottom)); min-height: 380px; }
+.mobile .send-sketch { margin-left: 0; width: 100%; }
+.mobile .tab { font-size: 9.5px; }
+.mobile .tab svg { width: 20px; height: 20px; }

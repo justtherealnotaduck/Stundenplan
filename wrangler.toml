@@ -4,6 +4,10 @@ main = "worker/index.js"
 compatibility_date = "2025-06-01"
 compatibility_flags = ["nodejs_compat"]
 
+# Workers AI für die Lern-KI (Gratis-Kontingent: 10.000 Neurons pro Tag)
+[ai]
+binding = "AI"
+
 [vars]
 # Von welchen Seiten aus die API benutzt werden darf (kommagetrennt)
 ALLOWED_ORIGINS = "https://mein-stundenplan.pages.dev,https://justtherealnotaduck.github.io"

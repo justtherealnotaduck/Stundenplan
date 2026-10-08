@@ -7,6 +7,7 @@
 
 import u from '../lib/untis.js';
 import api from '../lib/routes.js';
+import tutor from '../lib/tutor.js';
 
 const HOUR = 60 * 60 * 1000;
 const TOKEN_TTL = { short: 12 * HOUR, remember: 60 * 24 * HOUR };
@@ -68,6 +69,22 @@ async function sessionFor(env, request) {
   return s;
 }
 
+// ---------- Lern-KI: Limit pro Nutzer ----------
+// Das Gratis-Kontingent gilt für alle zusammen – darum höchstens 40 Fragen pro Stunde und Anmeldung.
+
+const tutorUse = new Map(); // Token -> Zeitpunkte der letzten Fragen
+const TUTOR_PER_HOUR = 40;
+
+function limitTutor(request) {
+  const token = (request.headers.get('Authorization') || '').slice(7);
+  const hourAgo = Date.now() - HOUR;
+  const times = (tutorUse.get(token) || []).filter((t) => t > hourAgo);
+  if (times.length >= TUTOR_PER_HOUR) throw u.httpError(429, 'Du hast in der letzten Stunde schon sehr viel gefragt – mach kurz Pause und versuch es gleich wieder. 🙂');
+  times.push(Date.now());
+  tutorUse.set(token, times);
+  if (tutorUse.size > MAX_SESSIONS) tutorUse.delete(tutorUse.keys().next().value);
+}
+
 // ---------- HTTP ----------
 
 function cors(env, request) {
@@ -110,6 +127,10 @@ async function route(request, env, url) {
     return { ok: true };
   }
   if (!s) throw u.httpError(401, 'Nicht angemeldet');
+  if (url.pathname === '/api/tutor' && request.method === 'POST') {
+    limitTutor(request);
+    return tutor.ask(env.AI, await request.json().catch(() => ({})));
+  }
   return api.handle(s, url);
 }
 
